@@ -12,9 +12,9 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header class="topbar"><div><div class="eyebrow">PERSONAL PWA</div><h1>Fantasy Command Center</h1></div><button id="refreshBtn">↻</button></header>
+<header class="topbar"><div><div class="eyebrow">FANTASY PORTFOLIO</div><h1>Fantasy Command Center</h1></div><button id="refreshBtn" aria-label="Refresh">↻</button></header>
 <main>
-<section class="card">
+<section class="card manager-card">
 <label>Sleeper manager</label>
 <div class="row"><input id="username" value="Txeagle" autocapitalize="none"><button id="loadBtn">Load</button></div>
 <div id="statusText" class="muted">Ready.</div>
@@ -32,6 +32,24 @@
 <h2>🔥 Multi-League Injury Exposure</h2><div id="riskList" class="stack"></div>
 </section>
 
+<section id="sundayView" class="view">
+<div class="sunday-hero card">
+<div><div class="eyebrow">SUNDAY MODE</div><h2 id="sundayTitle">Week — Command Center</h2><div id="sundaySummary" class="muted">Load a manager to scan every lineup.</div></div>
+<button id="sundayRefreshBtn">Scan</button>
+</div>
+<div class="stats sunday-stats">
+<div class="stat"><span>Lineups</span><strong id="sundayLineups">—</strong></div>
+<div class="stat danger"><span>Act Now</span><strong id="sundayUrgent">—</strong></div>
+<div class="stat warn"><span>Monitor</span><strong id="sundayWatch">—</strong></div>
+<div class="stat"><span>Leagues Hit</span><strong id="sundayAffected">—</strong></div>
+</div>
+<div id="sundayAllClear" class="all-clear"></div>
+<h2>🚨 Act Now</h2><div id="sundayUrgentList" class="stack"></div>
+<h2>⚠️ Monitor</h2><div id="sundayWatchList" class="stack"></div>
+<h2>🔥 Portfolio Risk</h2><div id="sundayRiskList" class="stack"></div>
+<h2>🏟️ Matchup Snapshot</h2><div id="sundayMatchups" class="stack"></div>
+</section>
+
 <section id="teamsView" class="view">
 <section class="card"><label>League</label><select id="leagueSelect"></select></section>
 <div id="teamRoster"></div>
@@ -47,6 +65,7 @@
 
 <nav>
 <button class="nav active" data-view="homeView">🏠<small>Home</small></button>
+<button class="nav sunday-nav" data-view="sundayView">⚡<small>Sunday</small></button>
 <button class="nav" data-view="teamsView">🏈<small>Teams</small></button>
 <button class="nav" data-view="playersView">🔎<small>Players</small></button>
 <button class="nav" data-view="exposureView">📊<small>Exposure</small></button>
