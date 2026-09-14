@@ -42,9 +42,13 @@ async function load(){
       get(ESPN_SCOREBOARD).catch(()=>null)
     ]);
     S.leagues=leagues;S.players=players;S.nflState=nflState;
+    // Sleeper's state.week is the source of truth for the active fantasy week.
+    // Normalize display_week to it so every supplemental TFFCC module rolls over
+    // at the same time Sleeper does instead of getting ahead of the platform.
+    if(S.nflState?.week)S.nflState.display_week=S.nflState.week;
     buildGameStates(scoreboard);
     S.rows=[];S.lineups=[];S.matchups={};
-    let week=Number(S.nflState.display_week||S.nflState.week||1);
+    let week=Number(S.nflState.week||S.nflState.display_week||1);
     let data=await Promise.all(S.leagues.map(async l=>{
       try{
         let [rs,mu]=await Promise.all([
@@ -128,7 +132,7 @@ function renderHome(){
 }
 
 function renderSunday(){
-  let week=Number(S.nflState.display_week||S.nflState.week||1);
+  let week=Number(S.nflState.week||S.nflState.display_week||1);
   let starters=S.rows.filter(r=>r.rosterStatus==="Starter"),pregame=starters.filter(actionableInjury),m=pregame.filter(must),w=pregame.filter(watch);
   let managedLineups=S.lineups.filter(l=>!l.bestBall);
   let empty=managedLineups.filter(l=>l.emptySlots>0);
