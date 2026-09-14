@@ -32,19 +32,13 @@ load=async function(){
   }
 };
 
-// Keep the user's tap inside TFFCC first, then let a short relay page open the exact
-// Sleeper league web URL. This avoids making the original tap a direct iOS universal-link
-// handoff, which was opening Sleeper at its last-used screen and leaving a blank Safari sheet.
-function sleeperLeagueUrl(leagueId){
-  return "./league-web.html?league="+encodeURIComponent(leagueId);
+// Sleeper's iOS app currently discards the league destination when launched from TFFCC.
+// Retire the handoff button for now instead of presenting a control that opens the wrong place.
+// Keep this function so existing actionable-card rendering remains simple and can be restored later
+// if Sleeper exposes a reliable supported deep link.
+function sleeperLink(){
+  return "";
 }
-function sleeperLink(leagueId){
-  if(!leagueId)return "";
-  return '<a class="sleeper-link" href="'+sleeperLeagueUrl(leagueId)+'">Open This League ↗</a>';
-}
-const sleeperLinkStyle=document.createElement("style");
-sleeperLinkStyle.textContent='.sleeper-link{display:inline-block;margin-top:10px;padding:8px 11px;border-radius:10px;background:#38bdf8;color:#07111f;text-decoration:none;font-size:12px;font-weight:900}.sleeper-link:active{transform:translateY(1px)}';
-document.head.appendChild(sleeperLinkStyle);
 
 emptyLineupCard=function(l){
   return '<div class="player urgent-card"><span class="badge danger-badge">EMPTY</span><div class="player-name">'+esc(l.league)+'</div><div class="sub">'+l.emptySlots+' empty starter slot'+(l.emptySlots===1?'':'s')+' detected. Fill this lineup.</div>'+sleeperLink(l.leagueId)+'</div>';
