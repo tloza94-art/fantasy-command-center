@@ -39,7 +39,9 @@ function sleeperLeagueUrl(leagueId){
 }
 function sleeperLink(leagueId){
   if(!leagueId)return "";
-  return '<a class="sleeper-link" href="'+sleeperLeagueUrl(leagueId)+'" target="_blank" rel="noopener">Open This League ↗</a>';
+  // Keep navigation in the current context. Opening a new target left an empty Safari sheet
+  // behind when iOS handed the URL to Sleeper.
+  return '<a class="sleeper-link" href="'+sleeperLeagueUrl(leagueId)+'">Open This League ↗</a>';
 }
 const sleeperLinkStyle=document.createElement("style");
 sleeperLinkStyle.textContent='.sleeper-link{display:inline-block;margin-top:10px;padding:8px 11px;border-radius:10px;background:#38bdf8;color:#07111f;text-decoration:none;font-size:12px;font-weight:900}.sleeper-link:active{transform:translateY(1px)}';
