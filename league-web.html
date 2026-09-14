@@ -20,7 +20,7 @@
 <div class="card">
   <div class="eyebrow">TFFCC HANDOFF</div>
   <h1>Opening this league…</h1>
-  <p id="msg">Sending you to the exact Sleeper league in the web experience.</p>
+  <p id="msg">Sending you to the exact Sleeper team page.</p>
   <a id="fallback" href="https://sleeper.com/">Continue to Sleeper</a>
 </div>
 <script>
@@ -32,11 +32,9 @@
     msg.textContent="That league link is missing or invalid.";
     return;
   }
-  const target="https://sleeper.com/leagues/"+encodeURIComponent(id)+"/league";
+  // Current Sleeper web league pages use /leagues/<league_id>/team.
+  const target="https://sleeper.com/leagues/"+encodeURIComponent(id)+"/team";
   fallback.href=target;
-  // Delay the external navigation so it is not the original user-tap universal-link gesture.
-  // On iOS this gives Safari/web a better chance to keep the exact league URL instead of
-  // handing Sleeper only a generic app-open event and leaving a blank browser sheet behind.
   setTimeout(()=>location.replace(target),350);
 })();
 </script>
