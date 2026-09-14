@@ -33,9 +33,10 @@ load=async function(){
 };
 
 // Handoff from TFFCC into the matching Sleeper league.
-// sleeper.app is Sleeper's web-app domain; keeping the league path intact gives iOS the best chance to preserve the destination when handing off to the native app.
+// Use the league root URL. Current Sleeper examples put the league ID at the end of the URL;
+// the native app appears to handle this route more reliably than the nested /team route.
 function sleeperLeagueUrl(leagueId){
-  return "https://sleeper.app/leagues/"+encodeURIComponent(leagueId)+"/team";
+  return "https://sleeper.app/leagues/"+encodeURIComponent(leagueId);
 }
 function sleeperLink(leagueId){
   if(!leagueId)return "";
