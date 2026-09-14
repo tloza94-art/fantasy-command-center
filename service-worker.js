@@ -1,4 +1,4 @@
-const C="fantasy-cc-v13";
+const C="fantasy-cc-v14";
 const SHELL=["./","./index.html","./styles.css","./app.js","./game-status-fix.js","./manager-ranking.js","./sleeper-links.js","./manifest.webmanifest","./icons/icon.svg"];
 
 self.addEventListener("install",e=>{
