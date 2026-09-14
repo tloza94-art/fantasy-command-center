@@ -1,5 +1,5 @@
 const API="https://api.sleeper.app/v1",SEASON="2026",ESPN_SCOREBOARD="https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
-let S={user:null,leagues:[],rows:[],players:{},nflState:{},lineups:[],matchups:{},gameStates:{}};
+let S={user:null,leagues:[],rows:[],players:{},nflState:{},lineups:[],matchups:{},gameStates:{},rosters:{},leagueUsers:{}};
 const $=id=>document.getElementById(id);
 
 document.addEventListener("DOMContentLoaded",()=>{
@@ -47,19 +47,20 @@ async function load(){
     // at the same time Sleeper does instead of getting ahead of the platform.
     if(S.nflState?.week)S.nflState.display_week=S.nflState.week;
     buildGameStates(scoreboard);
-    S.rows=[];S.lineups=[];S.matchups={};
+    S.rows=[];S.lineups=[];S.matchups={};S.rosters={};S.leagueUsers={};
     let week=Number(S.nflState.week||S.nflState.display_week||1);
     let data=await Promise.all(S.leagues.map(async l=>{
-      try{
-        let [rs,mu]=await Promise.all([
-          get(API+"/league/"+l.league_id+"/rosters"),
-          get(API+"/league/"+l.league_id+"/matchups/"+week).catch(()=>[])
-        ]);
-        return{l,rs,mu};
-      }catch{return{l,rs:[],mu:[]}}
+      let [rs,mu,us]=await Promise.all([
+        get(API+"/league/"+l.league_id+"/rosters").catch(()=>[]),
+        get(API+"/league/"+l.league_id+"/matchups/"+week).catch(()=>[]),
+        get(API+"/league/"+l.league_id+"/users").catch(()=>[])
+      ]);
+      return{l,rs,mu,us};
     }));
-    data.forEach(({l,rs,mu})=>{
+    data.forEach(({l,rs,mu,us})=>{
       S.matchups[l.league_id]=mu||[];
+      S.rosters[l.league_id]=rs||[];
+      S.leagueUsers[l.league_id]=us||[];
       let r=rs.find(x=>String(x.owner_id)===String(user.user_id));
       if(!r)return;
       let bestBall=isBestBallLeague(l);
@@ -67,7 +68,10 @@ async function load(){
       let emptySlots=(r.starters||[]).filter(id=>!id||id==="0").length;
       let mine=(mu||[]).find(m=>Number(m.roster_id)===Number(r.roster_id));
       let opp=mine?(mu||[]).find(m=>m.matchup_id===mine.matchup_id&&Number(m.roster_id)!==Number(r.roster_id)):null;
-      S.lineups.push({leagueId:l.league_id,league:l.name,rosterId:r.roster_id,emptySlots,points:Number(mine?.points||0),opponentPoints:opp?Number(opp.points||0):null,matchupId:mine?.matchup_id??null,bestBall});
+      let oppRoster=opp?(rs||[]).find(x=>Number(x.roster_id)===Number(opp.roster_id)):null;
+      let oppUser=oppRoster?.owner_id?(us||[]).find(x=>String(x.user_id)===String(oppRoster.owner_id)):null;
+      let opponentName=oppUser?.metadata?.team_name||oppUser?.display_name||oppUser?.username||null;
+      S.lineups.push({leagueId:l.league_id,league:l.name,rosterId:r.roster_id,emptySlots,points:Number(mine?.points||0),opponentPoints:opp?Number(opp.points||0):null,opponentName,matchupId:mine?.matchup_id??null,bestBall});
       (r.players||[]).forEach(id=>{
         let p=S.players[id]||{},rosterStatus=ir.has(id)?"IR":tx.has(id)?"Taxi":st.has(id)?"Starter":"Bench";
         S.rows.push({leagueId:l.league_id,league:l.name,id,name:p.full_name||((p.first_name||"")+" "+(p.last_name||"")).trim()||id,pos:p.position||"",team:p.team||"",rosterStatus,injury:p.injury_status||"",nflStatus:p.status||"",bestBall});
@@ -165,7 +169,8 @@ function renderSunday(){
   let matchups=S.lineups.slice().sort((a,b)=>a.league.localeCompare(b.league));
   $("sundayMatchups").innerHTML=matchups.length?matchups.map(l=>{
     let score=l.matchupId===null?'Matchup data unavailable':(l.opponentPoints===null?formatScore(l.points):formatScore(l.points)+' vs '+formatScore(l.opponentPoints));
-    return '<div class="player matchup-card"><div class="player-name">'+esc(l.league)+(l.bestBall?' <span class="league-chip">Best Ball</span>':'')+'</div><div class="sub">'+score+(!l.bestBall&&l.emptySlots?' • ⚠️ '+l.emptySlots+' empty slot'+(l.emptySlots===1?'':'s'):'')+'</div></div>';
+    let opponent=l.opponentName?' • vs '+esc(l.opponentName):'';
+    return '<div class="player matchup-card"><div class="player-name">'+esc(l.league)+(l.bestBall?' <span class="league-chip">Best Ball</span>':'')+'</div><div class="sub">'+score+opponent+(!l.bestBall&&l.emptySlots?' • ⚠️ '+l.emptySlots+' empty slot'+(l.emptySlots===1?'':'s'):'')+'</div></div>';
   }).join(""):'<div class="muted">No matchup data available.</div>';
 }
 
