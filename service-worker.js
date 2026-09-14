@@ -1,4 +1,4 @@
-const C="fantasy-cc-v15";
+const C="fantasy-cc-v16";
 const SHELL=["./","./index.html","./styles.css","./app.js","./game-status-fix.js","./manager-ranking.js","./sleeper-links.js","./manifest.webmanifest","./icons/icon.svg"];
 
 self.addEventListener("install",e=>{
@@ -15,7 +15,7 @@ self.addEventListener("activate",e=>{
 
 self.addEventListener("fetch",e=>{
   const u=new URL(e.request.url);
-  if(u.hostname.includes("sleeper.app")||u.hostname.includes("espn.com")){
+  if(u.hostname.includes("sleeper.app")||u.hostname.includes("sleeper.com")||u.hostname.includes("espn.com")){
     e.respondWith(fetch(e.request,{cache:"no-store"}));
     return;
   }
