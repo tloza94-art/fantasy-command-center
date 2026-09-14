@@ -107,16 +107,22 @@ const actionableInjury=r=>!r.bestBall&&!gameStarted(r);
 
 function renderAll(){renderHome();renderSunday();renderLeagueSelect();renderTeam();renderSearch();renderExposure()}
 
+function emptyLineupCard(l){
+  return '<div class="player urgent-card"><span class="badge danger-badge">EMPTY</span><div class="player-name">'+esc(l.league)+'</div><div class="sub">'+l.emptySlots+' empty starter slot'+(l.emptySlots===1?'':'s')+' detected. Fill this lineup.</div></div>';
+}
+
 function renderHome(){
   let starters=S.rows.filter(r=>r.rosterStatus==="Starter"),pregame=starters.filter(actionableInjury),m=pregame.filter(must),w=pregame.filter(watch),map={};
   let managedLineups=S.lineups.filter(l=>!l.bestBall);
+  let empty=managedLineups.filter(l=>l.emptySlots>0);
   pregame.filter(injured).forEach(r=>{if(!map[r.id])map[r.id]={...r,leagues:[]};map[r.id].leagues.push(r.league)});
   let risks=Object.values(map).filter(r=>r.leagues.length>1).sort((a,b)=>b.leagues.length-a.leagues.length);
+  let mustFixCards=[...empty.map(emptyLineupCard),...m.map(card)];
   $("leagueCount").textContent=S.leagues.length;
-  $("mustFixCount").textContent=m.length+managedLineups.reduce((n,l)=>n+l.emptySlots,0);
+  $("mustFixCount").textContent=m.length+empty.reduce((n,l)=>n+l.emptySlots,0);
   $("watchCount").textContent=w.length;
   $("riskCount").textContent=risks.length;
-  $("mustFixList").innerHTML=m.length?m.map(card).join(""):'<div class="muted">✅ No must-change injured starters with games still open.</div>';
+  $("mustFixList").innerHTML=mustFixCards.length?mustFixCards.join(""):'<div class="muted">✅ No must-change injured starters or empty managed-lineup slots.</div>';
   $("watchList").innerHTML=w.length?w.map(card).join(""):'<div class="muted">✅ No Q/D starters with games still open.</div>';
   $("riskList").innerHTML=risks.length?risks.map(r=>riskCard(r)).join(""):'<div class="muted">✅ No multi-league pre-kickoff injury risks.</div>';
 }
@@ -146,7 +152,7 @@ function renderSunday(){
   $("sundayAllClear").innerHTML=!urgentCount&&!w.length?'<div class="all-clear-card">✅ <strong>All clear.</strong> No actionable pre-kickoff injury alerts or empty starter slots detected in managed leagues.</div>':"";
 
   let urgentCards=[];
-  empty.forEach(l=>urgentCards.push('<div class="player urgent-card"><span class="badge danger-badge">EMPTY</span><div class="player-name">'+esc(l.league)+'</div><div class="sub">'+l.emptySlots+' empty starter slot'+(l.emptySlots===1?'':'s')+' detected. Fill this lineup first.</div></div>'));
+  urgentCards.push(...empty.map(emptyLineupCard));
   urgentCards.push(...m.map(r=>sundayPlayerCard(r,"ACT NOW")));
   $("sundayUrgentList").innerHTML=urgentCards.length?urgentCards.join(""):'<div class="muted">✅ Nothing urgent detected before kickoff.</div>';
   $("sundayWatchList").innerHTML=w.length?w.map(r=>sundayPlayerCard(r,"MONITOR")).join(""):'<div class="muted">✅ No questionable or doubtful starters still awaiting kickoff.</div>';
