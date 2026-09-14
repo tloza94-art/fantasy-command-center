@@ -32,15 +32,14 @@ load=async function(){
   }
 };
 
-// Reliable handoff from TFFCC to the exact Sleeper league page in the web app.
-// iOS may still choose to hand sleeper.app links to the native Sleeper app; if it does,
-// Sleeper controls whether the league path is preserved.
+// Open the exact Sleeper league represented by the TFFCC action card.
+// Current Sleeper league links use /leagues/<league_id>/league.
 function sleeperLeagueUrl(leagueId){
-  return "https://sleeper.app/leagues/"+encodeURIComponent(leagueId)+"/team";
+  return "https://sleeper.com/leagues/"+encodeURIComponent(leagueId)+"/league";
 }
 function sleeperLink(leagueId){
   if(!leagueId)return "";
-  return '<a class="sleeper-link" href="'+sleeperLeagueUrl(leagueId)+'" target="_blank" rel="noopener">Open League ↗</a>';
+  return '<a class="sleeper-link" href="'+sleeperLeagueUrl(leagueId)+'" target="_blank" rel="noopener">Open This League ↗</a>';
 }
 const sleeperLinkStyle=document.createElement("style");
 sleeperLinkStyle.textContent='.sleeper-link{display:inline-block;margin-top:10px;padding:8px 11px;border-radius:10px;background:#38bdf8;color:#07111f;text-decoration:none;font-size:12px;font-weight:900}.sleeper-link:active{transform:translateY(1px)}';
