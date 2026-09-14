@@ -16,9 +16,11 @@ load=async function(){
 };
 
 async function buildManagerRanking(){
-  const items=await Promise.all(S.leagues.map(async league=>{
+  const items=S.leagues.map(league=>{
     try{
-      const rosters=await get(API+"/league/"+league.league_id+"/rosters");
+      // Reuse the roster payload already loaded by app.js instead of making
+      // one extra Sleeper roster request for every league on every refresh.
+      const rosters=S.rosters?.[league.league_id]||[];
       const roster=rosters.find(r=>String(r.owner_id)===String(S.user.user_id));
       if(!roster)return null;
       const settings=roster.settings||{};
@@ -34,9 +36,9 @@ async function buildManagerRanking(){
       if(lineup.matchupId!==null&&lineup.matchupId!==undefined&&lineup.opponentPoints!==null&&lineup.opponentPoints!==undefined){
         matchupState=lineup.points>lineup.opponentPoints?"Leading":lineup.points<lineup.opponentPoints?"Trailing":"Tied";
       }
-      return {leagueId:league.league_id,league:league.name,bestBall:isBestBallLeague(league),wins,losses,ties,games,winPct,pf,weekPoints:Number(lineup.points||0),oppPoints:lineup.opponentPoints,matchupState,mustFix,monitor};
+      return {leagueId:league.league_id,league:league.name,bestBall:isBestBallLeague(league),wins,losses,ties,games,winPct,pf,weekPoints:Number(lineup.points||0),oppPoints:lineup.opponentPoints,opponentName:lineup.opponentName||null,matchupState,mustFix,monitor};
     }catch{return null}
-  }));
+  });
   managerRankingData=items.filter(Boolean);
   scoreAndRenderManagerRanking();
 }
@@ -62,8 +64,9 @@ function scoreAndRenderManagerRanking(){
   $("managerRankingList").innerHTML=a.map((x,i)=>{
     const record=x.wins+"-"+x.losses+(x.ties?"-"+x.ties:"");
     const score=x.oppPoints===null||x.oppPoints===undefined?formatScore(x.weekPoints):formatScore(x.weekPoints)+" vs "+formatScore(x.oppPoints);
+    const opponent=x.opponentName?' • vs '+esc(x.opponentName):'';
     const alerts=x.bestBall?'<span class="league-chip">Best Ball</span>':(x.mustFix?'<span class="league-chip danger-chip">'+x.mustFix+' must fix</span>':'')+(x.monitor?'<span class="league-chip warn-chip">'+x.monitor+' monitor</span>':'');
-    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">Record '+record+' • '+Math.round(x.winPct*100)+'% • PF '+formatScore(x.pf)+'</div><div class="sub">Week: '+score+' • '+x.matchupState+'</div><div>'+alerts+'</div></div></div>';
+    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">Record '+record+' • '+Math.round(x.winPct*100)+'% • PF '+formatScore(x.pf)+'</div><div class="sub">Week: '+score+opponent+' • '+x.matchupState+'</div><div>'+alerts+'</div></div></div>';
   }).join("");
 }
 
@@ -84,7 +87,7 @@ async function buildPotentialUpgrades(){
 }
 
 async function loadWeeklyProjectionMap(){
-  const week=Number(S.nflState.display_week||S.nflState.week||1);
+  const week=Number(S.nflState.week||S.nflState.display_week||1);
   const rawType=String(S.nflState.season_type||"regular").toLowerCase();
   const seasonType=rawType.includes("post")?"post":rawType.includes("pre")?"pre":"regular";
   const urls=[
