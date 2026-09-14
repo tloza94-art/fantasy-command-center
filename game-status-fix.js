@@ -32,15 +32,14 @@ load=async function(){
   }
 };
 
-// Open the exact Sleeper league represented by the TFFCC action card.
-// Current Sleeper league links use /leagues/<league_id>/league.
+// Keep the user's tap inside TFFCC first, then let a short relay page open the exact
+// Sleeper league web URL. This avoids making the original tap a direct iOS universal-link
+// handoff, which was opening Sleeper at its last-used screen and leaving a blank Safari sheet.
 function sleeperLeagueUrl(leagueId){
-  return "https://sleeper.com/leagues/"+encodeURIComponent(leagueId)+"/league";
+  return "./league-web.html?league="+encodeURIComponent(leagueId);
 }
 function sleeperLink(leagueId){
   if(!leagueId)return "";
-  // Keep navigation in the current context. Opening a new target left an empty Safari sheet
-  // behind when iOS handed the URL to Sleeper.
   return '<a class="sleeper-link" href="'+sleeperLeagueUrl(leagueId)+'">Open This League ↗</a>';
 }
 const sleeperLinkStyle=document.createElement("style");
