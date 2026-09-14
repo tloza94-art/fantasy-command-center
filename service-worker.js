@@ -1,5 +1,5 @@
-const C="fantasy-cc-v10";
-const SHELL=["./","./index.html","./styles.css","./app.js","./game-status-fix.js","./manager-ranking.js","./manifest.webmanifest","./icons/icon.svg"];
+const C="fantasy-cc-v11";
+const SHELL=["./","./index.html","./styles.css","./app.js","./game-status-fix.js","./manager-ranking.js","./sleeper-links.js","./manifest.webmanifest","./icons/icon.svg"];
 
 self.addEventListener("install",e=>{
   self.skipWaiting();
