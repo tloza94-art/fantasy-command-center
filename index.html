@@ -12,7 +12,8 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header class="topbar"><div><div class="eyebrow">FANTASY PORTFOLIO</div><h1>Fantasy Command Center</h1></div><button id="refreshBtn" aria-label="Refresh">↻</button></header>
+<div id="pullRefreshIndicator" class="pull-refresh" aria-hidden="true"><span id="pullRefreshIcon">↻</span><span id="pullRefreshLabel">Pull to refresh</span></div>
+<header class="topbar"><div><div class="eyebrow">FANTASY PORTFOLIO</div><h1>Fantasy Command Center</h1></div><button id="refreshBtn" class="legacy-refresh-control" aria-label="Refresh">↻</button></header>
 <main>
 <section class="card manager-card">
 <label>Sleeper manager</label>
@@ -35,7 +36,7 @@
 <section id="sundayView" class="view">
 <div class="sunday-hero card">
 <div><div class="eyebrow">SUNDAY MODE</div><h2 id="sundayTitle">Week — Command Center</h2><div id="sundaySummary" class="muted">Load a manager to scan every lineup.</div></div>
-<button id="sundayRefreshBtn">Scan</button>
+<button id="sundayRefreshBtn" class="legacy-refresh-control">Scan</button>
 </div>
 <div class="stats sunday-stats">
 <div class="stat"><span>Lineups</span><strong id="sundayLineups">—</strong></div>
@@ -93,4 +94,5 @@
 <script src="manager-ranking.js"></script>
 <script src="upgrade-popup.js"></script>
 <script src="resume-refresh.js"></script>
+<script src="pull-refresh.js"></script>
 </body></html>
