@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Opening Sleeper League…</title>
+<style>
+  :root{color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#020617;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:24px}
+  .card{width:min(460px,100%);background:#0f172a;border:1px solid rgba(148,163,184,.22);border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+  .eyebrow{font-size:11px;font-weight:900;letter-spacing:.12em;color:#38bdf8}
+  h1{font-size:22px;margin:8px 0}
+  p{color:#94a3b8;line-height:1.45}
+  a{display:inline-block;margin-top:10px;padding:11px 14px;border-radius:11px;background:#38bdf8;color:#07111f;text-decoration:none;font-weight:900}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="eyebrow">TFFCC HANDOFF</div>
+  <h1>Opening this league…</h1>
+  <p id="msg">Sending you to the exact Sleeper league in the web experience.</p>
+  <a id="fallback" href="https://sleeper.com/">Continue to Sleeper</a>
+</div>
+<script>
+(function(){
+  const id=new URLSearchParams(location.search).get("league")||"";
+  const fallback=document.getElementById("fallback");
+  const msg=document.getElementById("msg");
+  if(!/^\d{8,25}$/.test(id)){
+    msg.textContent="That league link is missing or invalid.";
+    return;
+  }
+  const target="https://sleeper.com/leagues/"+encodeURIComponent(id)+"/league";
+  fallback.href=target;
+  // Delay the external navigation so it is not the original user-tap universal-link gesture.
+  // On iOS this gives Safari/web a better chance to keep the exact league URL instead of
+  // handing Sleeper only a generic app-open event and leaving a blank browser sheet behind.
+  setTimeout(()=>location.replace(target),350);
+})();
+</script>
+</body>
+</html>
