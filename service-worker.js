@@ -1,5 +1,5 @@
-const C="fantasy-cc-v20";
-const SHELL=["./","./index.html","./styles.css","./app.js","./game-status-fix.js","./manager-ranking.js","./upgrade-popup.js","./resume-refresh.js","./sleeper-links.js","./manifest.webmanifest","./icons/icon.svg"];
+const C="fantasy-cc-v21";
+const SHELL=["./","./index.html","./styles.css","./app.js","./game-status-fix.js","./manager-ranking.js","./upgrade-popup.js","./resume-refresh.js","./league-web.html","./sleeper-links.js","./manifest.webmanifest","./icons/icon.svg"];
 
 self.addEventListener("install",e=>{
   self.skipWaiting();
