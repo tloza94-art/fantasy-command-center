@@ -50,6 +50,21 @@
 <h2>🏟️ Matchup Snapshot</h2><div id="sundayMatchups" class="stack"></div>
 </section>
 
+<section id="managerView" class="view">
+<div class="sunday-hero card manager-rank-hero">
+<div><div class="eyebrow">PORTFOLIO POWER RANKING</div><h2>Manager Ranking</h2><div class="muted">Your leagues ranked by record, season points, current matchup, and lineup health.</div></div>
+</div>
+<div class="stats sunday-stats">
+<div class="stat"><span>Ranked</span><strong id="rankedLeagueCount">—</strong></div>
+<div class="stat"><span>Total Wins</span><strong id="rankingWins">—</strong></div>
+<div class="stat"><span>Avg Win %</span><strong id="rankingWinPct">—</strong></div>
+<div class="stat"><span>Top Grade</span><strong id="rankingBest">—</strong></div>
+</div>
+<h2>🏆 Your Teams, Best to Worst</h2>
+<div id="managerRankingList" class="stack"><div class="muted">Load a manager to calculate rankings.</div></div>
+<div class="muted ranking-note">FCC Score weights record most heavily, then season points, current matchup, and lineup health. It is a portfolio comparison—not a dynasty trade-value grade.</div>
+</section>
+
 <section id="teamsView" class="view">
 <section class="card"><label>League</label><select id="leagueSelect"></select></section>
 <div id="teamRoster"></div>
@@ -66,6 +81,7 @@
 <nav>
 <button class="nav active" data-view="homeView">🏠<small>Home</small></button>
 <button class="nav sunday-nav" data-view="sundayView">⚡<small>Sunday</small></button>
+<button class="nav" data-view="managerView">🏆<small>Rank</small></button>
 <button class="nav" data-view="teamsView">🏈<small>Teams</small></button>
 <button class="nav" data-view="playersView">🔎<small>Players</small></button>
 <button class="nav" data-view="exposureView">📊<small>Exposure</small></button>
@@ -73,4 +89,5 @@
 
 <script src="app.js"></script>
 <script src="game-status-fix.js"></script>
+<script src="manager-ranking.js"></script>
 </body></html>
