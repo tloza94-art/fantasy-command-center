@@ -1,7 +1,7 @@
 // Adds safe read-only handoff buttons from FCC into the matching Sleeper league.
-// Sleeper's public web league URL uses the league ID, e.g. https://sleeper.com/leagues/<league_id>/team
+// Sleeper's web app uses sleeper.app; the league ID is part of the selected league URL.
 function sleeperLeagueUrl(leagueId){
-  return "https://sleeper.com/leagues/"+encodeURIComponent(leagueId)+"/team";
+  return "https://sleeper.app/leagues/"+encodeURIComponent(leagueId)+"/team";
 }
 
 function sleeperLink(leagueId,label="Fix in Sleeper ↗"){
