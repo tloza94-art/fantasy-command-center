@@ -1,12 +1,27 @@
 // Refresh only the live data that can change while the user is in Sleeper.
-// This keeps TFFCC current without repeating the full startup scan on every return.
+// Full scans and resume refreshes are serialized so they can never append to
+// the same state at the same time (which previously produced duplicate cards).
 let tffccWasHidden=false;
 let tffccHiddenAt=0;
 let tffccResumeRefreshInFlight=false;
+let tffccFullLoadInFlight=false;
 let tffccLastResumeRefresh=0;
 
+// This script loads last, so wrap the final composed load() used by the UI.
+// Manual/full refreshes cannot overlap the lightweight resume refresh.
+const tffccFinalFullLoad=load;
+load=async function(){
+  if(tffccFullLoadInFlight)return;
+  while(tffccResumeRefreshInFlight)await new Promise(r=>setTimeout(r,100));
+  tffccFullLoadInFlight=true;
+  try{return await tffccFinalFullLoad()}
+  finally{tffccFullLoadInFlight=false}
+};
+
+const tffccDelay=ms=>new Promise(r=>setTimeout(r,ms));
+
 async function tffccRefreshAfterResume(){
-  if(tffccResumeRefreshInFlight||!S?.user||!S?.leagues?.length)return;
+  if(tffccResumeRefreshInFlight||tffccFullLoadInFlight||!S?.user||!S?.leagues?.length)return;
   const now=Date.now();
   if(now-tffccLastResumeRefresh<3000)return;
   tffccLastResumeRefresh=now;
@@ -14,24 +29,26 @@ async function tffccRefreshAfterResume(){
   try{
     status("Refreshing live lineup data…");
 
-    // Sleeper state decides which fantasy week is active.
+    // Give Sleeper a brief moment to persist a lineup change made immediately
+    // before the user switches back to TFFCC.
+    await tffccDelay(700);
+
     const nflState=await get(API+"/state/nfl").catch(()=>S.nflState||{});
     if(nflState?.week)nflState.display_week=nflState.week;
     S.nflState=nflState;
     const week=Number(S.nflState.week||S.nflState.display_week||1);
-
-    // Refresh only data that can realistically change while the user is away:
-    // rosters, current-week matchups, and NFL game state. League/user/player
-    // metadata stays in memory (the player database has its own 24-hour cache).
     const rawType=String(S.nflState.season_type||"regular").toLowerCase();
     const seasonType=rawType.includes("post")?3:rawType.includes("pre")?1:2;
     const weeklyUrl=ESPN_SCOREBOARD+"?dates="+SEASON+"&seasontype="+seasonType+"&week="+week+"&limit=100";
 
     const [leagueData,weeklyScoreboard,currentScoreboard]=await Promise.all([
       Promise.all(S.leagues.map(async league=>{
+        // Cache-busting query value plus fetch(cache:no-store) ensures the browser
+        // cannot satisfy a just-changed roster from an old HTTP cache entry.
+        const bust="?t="+Date.now();
         const [rosters,matchups]=await Promise.all([
-          get(API+"/league/"+league.league_id+"/rosters").catch(()=>S.rosters?.[league.league_id]||[]),
-          get(API+"/league/"+league.league_id+"/matchups/"+week).catch(()=>S.matchups?.[league.league_id]||[])
+          get(API+"/league/"+league.league_id+"/rosters"+bust).catch(()=>S.rosters?.[league.league_id]||[]),
+          get(API+"/league/"+league.league_id+"/matchups/"+week+bust).catch(()=>S.matchups?.[league.league_id]||[])
         ]);
         return {league,rosters,matchups};
       })),
@@ -39,8 +56,6 @@ async function tffccRefreshAfterResume(){
       get(ESPN_SCOREBOARD).catch(()=>null)
     ]);
 
-    // Merge the full weekly schedule and the live scoreboard so injury locking
-    // remains accurate for every game in the current Sleeper week.
     S.gameStates={};
     [weeklyScoreboard,currentScoreboard].forEach(scoreboard=>{
       (scoreboard?.events||[]).forEach(event=>{
@@ -55,19 +70,20 @@ async function tffccRefreshAfterResume(){
       });
     });
 
-    S.rows=[];
-    S.lineups=[];
-    S.matchups={};
-    S.rosters={};
+    // Build fresh arrays off to the side, then swap them into S atomically.
+    // This prevents partial/duplicate UI state even if rendering occurs nearby.
+    const nextRows=[];
+    const nextLineups=[];
+    const nextMatchups={};
+    const nextRosters={};
 
     leagueData.forEach(({league,rosters,matchups})=>{
       const leagueId=league.league_id;
-      S.rosters[leagueId]=rosters||[];
-      S.matchups[leagueId]=matchups||[];
+      nextRosters[leagueId]=rosters||[];
+      nextMatchups[leagueId]=matchups||[];
       const users=S.leagueUsers?.[leagueId]||[];
       const roster=(rosters||[]).find(x=>String(x.owner_id)===String(S.user.user_id));
       if(!roster)return;
-
       const bestBall=isBestBallLeague(league);
       const starters=new Set((roster.starters||[]).filter(id=>id&&id!=="0"));
       const ir=new Set(roster.reserve||[]);
@@ -79,40 +95,20 @@ async function tffccRefreshAfterResume(){
       const oppUser=oppRoster?.owner_id?users.find(x=>String(x.user_id)===String(oppRoster.owner_id)):null;
       const opponentName=oppUser?.metadata?.team_name||oppUser?.display_name||oppUser?.username||null;
 
-      S.lineups.push({
-        leagueId,
-        league:league.name,
-        rosterId:roster.roster_id,
-        emptySlots,
-        points:Number(mine?.points||0),
-        opponentPoints:opp?Number(opp.points||0):null,
-        opponentName,
-        matchupId:mine?.matchup_id??null,
-        bestBall
-      });
-
+      nextLineups.push({leagueId,league:league.name,rosterId:roster.roster_id,emptySlots,points:Number(mine?.points||0),opponentPoints:opp?Number(opp.points||0):null,opponentName,matchupId:mine?.matchup_id??null,bestBall});
       (roster.players||[]).forEach(id=>{
         const p=S.players[id]||{};
         const rosterStatus=ir.has(id)?"IR":taxi.has(id)?"Taxi":starters.has(id)?"Starter":"Bench";
-        S.rows.push({
-          leagueId,
-          league:league.name,
-          id,
-          name:p.full_name||((p.first_name||"")+" "+(p.last_name||"")).trim()||id,
-          pos:p.position||"",
-          team:p.team||"",
-          rosterStatus,
-          injury:p.injury_status||"",
-          nflStatus:p.status||"",
-          bestBall
-        });
+        nextRows.push({leagueId,league:league.name,id,name:p.full_name||((p.first_name||"")+" "+(p.last_name||"")).trim()||id,pos:p.position||"",team:p.team||"",rosterStatus,injury:p.injury_status||"",nflStatus:p.status||"",bestBall});
       });
     });
 
+    S.rows=nextRows;
+    S.lineups=nextLineups;
+    S.matchups=nextMatchups;
+    S.rosters=nextRosters;
     renderAll();
 
-    // Ranking now reuses S.rosters, so recomputing it is cheap. Projections are
-    // still refreshed because they are part of the lineup-upgrade decision.
     await Promise.all([
       typeof buildManagerRanking==="function"?buildManagerRanking():Promise.resolve(),
       typeof buildPotentialUpgrades==="function"?buildPotentialUpgrades():Promise.resolve()
@@ -128,23 +124,12 @@ async function tffccRefreshAfterResume(){
 }
 
 document.addEventListener("visibilitychange",()=>{
-  if(document.hidden){
-    tffccWasHidden=true;
-    tffccHiddenAt=Date.now();
-    return;
-  }
+  if(document.hidden){tffccWasHidden=true;tffccHiddenAt=Date.now();return}
   if(tffccWasHidden){
     tffccWasHidden=false;
-    // Ignore extremely brief visibility changes that are not real app switching.
     if(Date.now()-tffccHiddenAt>=500)tffccRefreshAfterResume();
   }
 });
 
-window.addEventListener("pagehide",()=>{
-  tffccWasHidden=true;
-  tffccHiddenAt=Date.now();
-});
-
-window.addEventListener("pageshow",event=>{
-  if(event.persisted)tffccRefreshAfterResume();
-});
+window.addEventListener("pagehide",()=>{tffccWasHidden=true;tffccHiddenAt=Date.now()});
+window.addEventListener("pageshow",event=>{if(event.persisted)tffccRefreshAfterResume()});
