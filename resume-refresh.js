@@ -109,10 +109,11 @@ async function tffccRefreshAfterResume(){
     S.rosters=nextRosters;
     renderAll();
 
-    await Promise.all([
-      typeof buildManagerRanking==="function"?buildManagerRanking():Promise.resolve(),
-      typeof buildPotentialUpgrades==="function"?buildPotentialUpgrades():Promise.resolve()
-    ]);
+    if(typeof buildManagerRanking==="function")await buildManagerRanking();
+    // Do not block the main thread with projection work immediately after a
+    // roster refresh; let the refreshed lineup UI paint first.
+    if(typeof schedulePotentialUpgrades==="function")schedulePotentialUpgrades(300);
+    else if(typeof buildPotentialUpgrades==="function")setTimeout(()=>buildPotentialUpgrades().catch(e=>console.warn("Deferred upgrade scan failed",e)),300);
 
     status((S.user.display_name||S.user.username)+" • "+S.leagues.length+" leagues • Week "+week+" • Live refresh "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}));
   }catch(e){
