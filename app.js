@@ -1,5 +1,5 @@
 const API="https://api.sleeper.app/v1",SEASON="2026",ESPN_SCOREBOARD="https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
-let S={user:null,leagues:[],rows:[],players:{},nflState:{},lineups:[],matchups:{},gameStates:{},rosters:{},leagueUsers:{},leagueProfiles:{}};
+let S={user:null,leagues:[],rows:[],players:{},nflState:{},lineups:[],matchups:{},gameStates:{},rosters:{},leagueUsers:{},leagueProfiles:{},tradedPicks:{}};
 const $=id=>document.getElementById(id);
 
 document.addEventListener("DOMContentLoaded",()=>{
@@ -32,7 +32,7 @@ async function load(){
   if(!username)return;
   // Do not persist manager identity on shared devices. Clear the previous
   // portfolio immediately so switching managers never leaves stale data visible.
-  S={user:null,leagues:[],rows:[],players:S.players||{},nflState:{},lineups:[],matchups:{},gameStates:{},rosters:{},leagueUsers:{},leagueProfiles:{}};
+  S={user:null,leagues:[],rows:[],players:S.players||{},nflState:{},lineups:[],matchups:{},gameStates:{},rosters:{},leagueUsers:{},leagueProfiles:{},tradedPicks:{}};
   renderAll();
   status("Scanning "+username+"…");
   try{
@@ -51,17 +51,19 @@ async function load(){
     // at the same time Sleeper does instead of getting ahead of the platform.
     if(S.nflState?.week)S.nflState.display_week=S.nflState.week;
     buildGameStates(scoreboard);
-    S.rows=[];S.lineups=[];S.matchups={};S.rosters={};S.leagueUsers={};
+    S.rows=[];S.lineups=[];S.matchups={};S.rosters={};S.leagueUsers={};S.tradedPicks={};
     let week=Number(S.nflState.week||S.nflState.display_week||1);
     let data=await Promise.all(S.leagues.map(async l=>{
-      let [rs,mu,us]=await Promise.all([
+      let [rs,mu,us,tp]=await Promise.all([
         get(API+"/league/"+l.league_id+"/rosters").catch(()=>[]),
         get(API+"/league/"+l.league_id+"/matchups/"+week).catch(()=>[]),
-        get(API+"/league/"+l.league_id+"/users").catch(()=>[])
+        get(API+"/league/"+l.league_id+"/users").catch(()=>[]),
+        get(API+"/league/"+l.league_id+"/traded_picks").catch(()=>[])
       ]);
-      return{l,rs,mu,us};
+      return{l,rs,mu,us,tp};
     }));
-    data.forEach(({l,rs,mu,us})=>{
+    data.forEach(({l,rs,mu,us,tp})=>{
+      S.tradedPicks[l.league_id]=tp||[];
       S.matchups[l.league_id]=mu||[];
       S.rosters[l.league_id]=rs||[];
       S.leagueUsers[l.league_id]=us||[];
