@@ -3,7 +3,7 @@
 // object in IndexedDB can stall iOS. The compact cache is dramatically smaller.
 const TFFCC_PLAYER_CACHE_DB="tffcc-player-cache";
 const TFFCC_PLAYER_CACHE_STORE="data";
-const TFFCC_PLAYER_CACHE_KEY="nfl-players-compact-v2";
+const TFFCC_PLAYER_CACHE_KEY="nfl-players-compact-v3";
 const TFFCC_PLAYER_CACHE_TTL=24*60*60*1000;
 
 function compactSleeperPlayers(data){
@@ -16,6 +16,7 @@ function compactSleeperPlayers(data){
       first_name:p.first_name||"",
       last_name:p.last_name||"",
       position:p.position||"",
+      fantasy_positions:Array.isArray(p.fantasy_positions)?p.fantasy_positions:[],
       team:p.team||"",
       injury_status:p.injury_status||"",
       status:p.status||""
