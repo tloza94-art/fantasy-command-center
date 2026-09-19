@@ -1,9 +1,14 @@
 // Native-style pull-to-refresh for the installed TFFCC PWA.
-// Uses the lightweight live refresh when portfolio data is already loaded.
+// This version never blocks normal taps or scrolling.
 (()=>{
   const THRESHOLD=72;
   const MAX_PULL=110;
+  const TOP_GESTURE_ZONE=110;
+  const START_SLOP=12;
+
   let startY=0;
+  let startX=0;
+  let tracking=false;
   let pulling=false;
   let distance=0;
   let armed=false;
@@ -15,7 +20,11 @@
   if(!indicator||!icon||!label)return;
 
   function atTop(){
-    return (window.scrollY||document.documentElement.scrollTop||0)<=0;
+    return (window.scrollY||document.documentElement.scrollTop||0)<=1;
+  }
+
+  function interactiveTarget(target){
+    return !!target?.closest?.("button,input,select,textarea,a,[role='button'],nav");
   }
 
   function setVisual(px){
@@ -31,6 +40,8 @@
   function resetVisual(){
     distance=0;
     armed=false;
+    tracking=false;
+    pulling=false;
     indicator.classList.remove("pulling");
     indicator.style.transform="translate(-50%, -58px)";
     indicator.style.opacity="0";
@@ -41,25 +52,25 @@
   async function runRefresh(){
     if(refreshing)return;
     refreshing=true;
+    tracking=false;
+    pulling=false;
     indicator.classList.add("refreshing");
     indicator.style.transform="translate(-50%, 10px)";
     indicator.style.opacity="1";
     label.textContent="Refreshing…";
     try{
       if(typeof tffccRefreshAfterResume==="function"&&S?.user&&S?.leagues?.length){
-        // The resume helper has its own short cooldown. Reset it so a deliberate
-        // pull always refreshes immediately.
         if(typeof tffccLastResumeRefresh!=="undefined")tffccLastResumeRefresh=0;
         await tffccRefreshAfterResume();
       }else if(typeof load==="function"){
         await load();
       }
       label.textContent="Updated";
-      await new Promise(r=>setTimeout(r,450));
+      await new Promise(r=>setTimeout(r,350));
     }catch(e){
       console.warn("Pull refresh failed",e);
       label.textContent="Refresh failed";
-      await new Promise(r=>setTimeout(r,700));
+      await new Promise(r=>setTimeout(r,600));
     }finally{
       refreshing=false;
       indicator.classList.remove("refreshing");
@@ -69,33 +80,64 @@
 
   document.addEventListener("touchstart",e=>{
     if(refreshing||!atTop()||e.touches.length!==1)return;
-    startY=e.touches[0].clientY;
-    pulling=true;
+    const touch=e.touches[0];
+
+    // Only begin a pull gesture from the top of the screen and never steal
+    // touches that started on an actual control.
+    if(touch.clientY>TOP_GESTURE_ZONE||interactiveTarget(e.target))return;
+
+    startY=touch.clientY;
+    startX=touch.clientX;
+    tracking=true;
+    pulling=false;
     distance=0;
-    indicator.classList.add("pulling");
   },{passive:true});
 
   document.addEventListener("touchmove",e=>{
-    if(!pulling||refreshing||e.touches.length!==1)return;
-    const raw=e.touches[0].clientY-startY;
-    if(raw<=0){resetVisual();pulling=false;return}
-    if(!atTop()){resetVisual();pulling=false;return}
-    // Dampen the gesture so it feels like native elastic overscroll.
-    distance=Math.min(raw*.58,MAX_PULL);
-    if(distance>4)e.preventDefault();
+    if(!tracking||refreshing||e.touches.length!==1)return;
+    const touch=e.touches[0];
+    const dy=touch.clientY-startY;
+    const dx=Math.abs(touch.clientX-startX);
+
+    // Wait until we know this is an intentional vertical pull. Horizontal
+    // swipes and ordinary taps remain completely untouched.
+    if(!pulling){
+      if(dy<START_SLOP)return;
+      if(dx>dy){resetVisual();return}
+      if(!atTop()){resetVisual();return}
+      pulling=true;
+      indicator.classList.add("pulling");
+    }
+
+    if(dy<=0||!atTop()){resetVisual();return}
+
+    distance=Math.min(dy*.58,MAX_PULL);
     setVisual(distance);
-  },{passive:false});
+
+    // Intentionally do NOT call preventDefault(). The old implementation did,
+    // which could make iOS treat ordinary interaction as a blocked gesture and
+    // make the PWA appear frozen.
+  },{passive:true});
 
   document.addEventListener("touchend",()=>{
-    if(!pulling||refreshing)return;
-    pulling=false;
-    if(armed)runRefresh();
-    else resetVisual();
+    if(refreshing)return;
+    if(pulling&&armed){
+      tracking=false;
+      pulling=false;
+      runRefresh();
+    }else{
+      resetVisual();
+    }
   },{passive:true});
 
   document.addEventListener("touchcancel",()=>{
-    if(refreshing)return;
-    pulling=false;
-    resetVisual();
+    if(!refreshing)resetVisual();
   },{passive:true});
+
+  // Failsafe: if iOS interrupts a touch sequence, never leave the gesture
+  // state armed and able to interfere with later interactions.
+  window.addEventListener("blur",()=>{if(!refreshing)resetVisual()});
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden&&!refreshing)resetVisual();
+  });
 })();
