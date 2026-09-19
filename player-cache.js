@@ -1,9 +1,28 @@
-// Cache Sleeper's large NFL player database locally for 24 hours.
-// Live league, roster, matchup, injury/status, and projection requests are not cached here.
+// Cache only the player fields TFFCC actually uses.
+// Sleeper's full NFL player payload is very large; storing/cloning that entire
+// object in IndexedDB can stall iOS. The compact cache is dramatically smaller.
 const TFFCC_PLAYER_CACHE_DB="tffcc-player-cache";
 const TFFCC_PLAYER_CACHE_STORE="data";
-const TFFCC_PLAYER_CACHE_KEY="nfl-players";
+const TFFCC_PLAYER_CACHE_KEY="nfl-players-compact-v2";
 const TFFCC_PLAYER_CACHE_TTL=24*60*60*1000;
+
+function compactSleeperPlayers(data){
+  const out={};
+  if(!data||typeof data!=="object")return out;
+  for(const [id,p] of Object.entries(data)){
+    if(!p||typeof p!=="object")continue;
+    out[id]={
+      full_name:p.full_name||"",
+      first_name:p.first_name||"",
+      last_name:p.last_name||"",
+      position:p.position||"",
+      team:p.team||"",
+      injury_status:p.injury_status||"",
+      status:p.status||""
+    };
+  }
+  return out;
+}
 
 function openPlayerCacheDb(){
   return new Promise((resolve,reject)=>{
@@ -51,11 +70,13 @@ async function getCachedSleeperPlayers(fetchFresh){
   if(fresh)return cached.data;
 
   try{
-    const data=await fetchFresh();
-    if(data&&typeof data==="object")writePlayerCache(data).catch(e=>console.warn("Player cache write unavailable",e));
+    const raw=await fetchFresh();
+    // Yield once before compacting a large payload so iOS can paint/respond.
+    await new Promise(r=>setTimeout(r,0));
+    const data=compactSleeperPlayers(raw);
+    if(Object.keys(data).length)writePlayerCache(data).catch(e=>console.warn("Player cache write unavailable",e));
     return data;
   }catch(e){
-    // If Sleeper is temporarily unreachable, an expired cache is still more useful than no player data.
     if(cached?.data){
       console.warn("Using stale Sleeper player cache after refresh failure",e);
       return cached.data;
