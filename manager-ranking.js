@@ -69,8 +69,11 @@ function ownedFuturePicks(league,rosterId,pickMap){
         const owner=move?Number(move.owner_id):originalRosterId;
         if(owner!==Number(rosterId))return;
         const id="pick:"+year+":"+round;
-        const card=pickMap?.[id];
-        owned.push({id,year,round,originalRosterId,valueCard:card||null});
+        // /picks exposes early/mid/late variants for future classes. Use the
+        // mid card as the neutral unknown-slot estimate when a bare round card
+        // is not included in the bulk response.
+        const card=pickMap?.[id]||pickMap?.[id+":mid"]||null;
+        owned.push({id,year,round,originalRosterId,valueCard:card});
       });
     }
   });
@@ -97,6 +100,17 @@ function percentile(value,values){
 
 function dynastyFormatForLeague(league){
   return leagueProfile(league)?.superflex?"sf_dynasty":"non_sf_dynasty";
+}
+
+function portfolioRank(value,values){
+  const sorted=values.filter(Number.isFinite).sort((a,b)=>b-a);
+  const i=sorted.findIndex(v=>v===value);
+  return i<0?null:i+1;
+}
+function strengthLabel(rank,total){
+  if(!rank||!total)return "Unavailable";
+  const p=(rank-1)/Math.max(total-1,1);
+  return p<=.15?"Elite":p<=.35?"Strong":p<=.65?"Average":p<=.85?"Below Average":"Weak";
 }
 
 function dynastyRosterMetrics(league,valueMap){
@@ -173,6 +187,20 @@ function scoreAndRenderManagerRanking(market){
     const c=x.components;
     x.profile=c.future>=16&&c.contender>=18?"Young Contender":c.contender>=19?"Contender":c.future>=16?"Ascending":c.roster>=34?"Strong Core":"Retool";
   });
+  const componentSets={
+    roster:a.map(x=>x.components.roster),
+    future:a.map(x=>x.components.future),
+    contender:a.map(x=>x.components.contender),
+    depthHealth:a.map(x=>x.components.depthHealth)
+  };
+  a.forEach(x=>{
+    x.componentRanks={
+      roster:portfolioRank(x.components.roster,componentSets.roster),
+      future:portfolioRank(x.components.future,componentSets.future),
+      contender:portfolioRank(x.components.contender,componentSets.contender),
+      depthHealth:portfolioRank(x.components.depthHealth,componentSets.depthHealth)
+    };
+  });
   a.sort((x,y)=>y.score-x.score||y.components.roster-x.components.roster||y.pf-x.pf);
   const totalWins=a.reduce((n,x)=>n+x.wins,0),avgWin=Math.round(a.reduce((n,x)=>n+x.winPct,0)/a.length*100);
   $("rankedLeagueCount").textContent=a.length;
@@ -182,12 +210,13 @@ function scoreAndRenderManagerRanking(market){
   $("managerRankingList").innerHTML=a.map((x,i)=>{
     const record=x.wins+"-"+x.losses+(x.ties?"-"+x.ties:"");
     const tags=leagueProfile(x.leagueId)?.formatTags||[];
-    const c=x.components;
+    const c=x.components,r=x.componentRanks,total=a.length;
     const leaders=x.marketMetrics?.topAssets?.map(v=>esc(v.row.name)).join(" • ")||"Market values unavailable";
     const coverage=x.marketMetrics?Math.round(x.marketMetrics.coverage*100):0;
     const picks=x.pickMetrics?.picks||[];
-    const pickSummary=picks.length?(picks.length+" future picks • "+x.pickMetrics.firsts+" first"+(x.pickMetrics.firsts===1?"":"s")+" • pick value "+Math.round(x.pickMetrics.total)):"No future picks detected";
-    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">'+esc(x.profile)+(tags.length?' • '+esc(tags.join(" / ")):'')+' • Record '+record+' • PF '+formatScore(x.pf)+'</div><details class="rank-breakdown"><summary>Dynasty breakdown</summary><div class="rank-components"><div><span>Roster Strength</span><strong>'+c.roster+' / 45</strong></div><div><span>Future / Picks</span><strong>'+c.future+' / 20</strong></div><div><span>Contender</span><strong>'+c.contender+' / 25</strong></div><div><span>Depth / Health</span><strong>'+c.depthHealth+' / 10</strong></div></div><div class="muted">Draft capital: '+esc(pickSummary)+'.<br>Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
+    const pickSummary=picks.length?(picks.length+" future picks • "+x.pickMetrics.firsts+" first"+(x.pickMetrics.firsts===1?"":"s")):"No future picks detected";
+    const component=(label,key)=>'<div><span>'+label+'</span><strong>#'+r[key]+' of '+total+' • '+strengthLabel(r[key],total)+'</strong></div>';
+    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">'+esc(x.profile)+(tags.length?' • '+esc(tags.join(" / ")):'')+' • Record '+record+' • PF '+formatScore(x.pf)+'</div><details class="rank-breakdown"><summary>Dynasty breakdown</summary><div class="rank-components rank-components-readable">'+component("Roster","roster")+component("Future / Picks","future")+component("Contender","contender")+component("Depth / Health","depthHealth")+'</div><div class="muted">Draft capital: '+esc(pickSummary)+'.<br>Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
   }).join("");
   const oldCredit=$("dynastyValueCredit");
   if(oldCredit)oldCredit.remove();
