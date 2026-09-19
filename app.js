@@ -3,7 +3,8 @@ let S={user:null,leagues:[],rows:[],players:{},nflState:{},lineups:[],matchups:{
 const $=id=>document.getElementById(id);
 
 document.addEventListener("DOMContentLoaded",()=>{
-  $("username").value=localStorage.getItem("fcc_username")||"Txeagle";
+  localStorage.removeItem("fcc_username");
+  $("username").value="";
   $("loadBtn").onclick=load;
   $("refreshBtn").onclick=load;
   $("sundayRefreshBtn").onclick=load;
@@ -11,7 +12,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   $("playerSearch").oninput=renderSearch;
   document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>switchView(b));
   if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js");
-  load();
+  renderSearch();
 });
 
 function switchView(button){
@@ -29,7 +30,10 @@ async function get(u){
 async function load(){
   let username=$("username").value.trim();
   if(!username)return;
-  localStorage.setItem("fcc_username",username);
+  // Do not persist manager identity on shared devices. Clear the previous
+  // portfolio immediately so switching managers never leaves stale data visible.
+  S={user:null,leagues:[],rows:[],players:S.players||{},nflState:{},lineups:[],matchups:{},gameStates:{},rosters:{},leagueUsers:{},leagueProfiles:{}};
+  renderAll();
   status("Scanning "+username+"…");
   try{
     let user=await get(API+"/user/"+encodeURIComponent(username));
@@ -236,9 +240,23 @@ function renderTeam(){
 
 function renderSearch(){
   let q=norm($("playerSearch").value);
-  if(!q){$("playerResults").innerHTML='<div class="muted">Type a player name.</div>';return}
-  let a=S.rows.filter(r=>norm(r.name).includes(q));
-  $("playerResults").innerHTML=a.length?a.map(r=>'<div class="player"><span class="badge">'+esc(r.injury)+'</span><div class="player-name">'+esc(r.name)+'</div><div class="sub">'+esc(r.pos)+' • '+esc(r.team||"FA")+'<br>'+esc(r.league)+' • '+r.rosterStatus+(r.bestBall?' • Best Ball':'')+'</div></div>').join(""):'<div class="muted">No match.</div>';
+  if(!q){$("playerResults").innerHTML='<div class="muted">Search a player to see your ownership, starts, exposure, and every league where you roster them.</div>';return}
+  const matches={};
+  S.rows.filter(r=>norm(r.name).includes(q)).forEach(r=>{
+    if(!matches[r.id])matches[r.id]={...r,rows:[]};
+    matches[r.id].rows.push(r);
+  });
+  const players=Object.values(matches).sort((a,b)=>b.rows.length-a.rows.length||a.name.localeCompare(b.name));
+  $("playerResults").innerHTML=players.length?players.map(p=>{
+    const owned=p.rows.length,starts=p.rows.filter(r=>r.rosterStatus==="Starter").length;
+    const exposure=Math.round((owned/Math.max(S.leagues.length,1))*100);
+    const injury=p.injury||p.nflStatus||"";
+    const leagues=p.rows.slice().sort((a,b)=>a.league.localeCompare(b.league)).map(r=>{
+      const tags=leagueProfile(r.leagueId)?.formatTags||[];
+      return '<div class="player-portfolio-league"><span>'+esc(r.league)+(tags.length?' <small>• '+esc(tags.join(" / "))+'</small>':'')+'</span><strong>'+esc(r.rosterStatus)+'</strong></div>';
+    }).join("");
+    return '<div class="player player-portfolio-card">'+(injury?'<span class="badge">'+esc(injury)+'</span>':'')+'<div class="player-name">'+esc(p.name)+'</div><div class="sub">'+esc(p.pos)+' • '+esc(p.team||"FA")+'</div><div class="player-portfolio-stats"><span><strong>'+owned+'</strong>Owned</span><span><strong>'+starts+'</strong>Starting</span><span><strong>'+exposure+'%</strong>Exposure</span></div><div class="player-portfolio-leagues">'+leagues+'</div></div>';
+  }).join(""):'<div class="muted">You do not roster a matching player in this portfolio.</div>';
 }
 
 function renderExposure(){
