@@ -26,6 +26,8 @@ load=async function(){
 const TFFCC_DYNASTY_VALUES_API="https://api.statsguyfantasy.com/api/v1/players";
 let tffccDynastyValuesCache=null;
 let tffccDynastyValuesAt=0;
+let tffccPickValuesCache=null;
+let tffccPickValuesAt=0;
 
 async function loadDynastyValues(){
   if(tffccDynastyValuesCache&&Date.now()-tffccDynastyValuesAt<12*60*60*1000)return tffccDynastyValuesCache;
@@ -36,6 +38,54 @@ async function loadDynastyValues(){
   tffccDynastyValuesCache={map,valuesAsOf:payload.valuesAsOf||{}};
   tffccDynastyValuesAt=Date.now();
   return tffccDynastyValuesCache;
+}
+
+async function loadDynastyPickValues(){
+  if(tffccPickValuesCache&&Date.now()-tffccPickValuesAt<12*60*60*1000)return tffccPickValuesCache;
+  const payload=await get("https://api.statsguyfantasy.com/api/v1/picks");
+  const map={};
+  (payload?.picks||[]).forEach(p=>{if(p?.id)map[String(p.id)]=p});
+  tffccPickValuesCache={map,valuesAsOf:payload.valuesAsOf||{}};
+  tffccPickValuesAt=Date.now();
+  return tffccPickValuesCache;
+}
+
+function pickRoundsForLeague(league){
+  const rounds=Number(league?.settings?.draft_rounds||league?.settings?.rookie_draft_rounds||5);
+  return Math.max(1,Math.min(10,Number.isFinite(rounds)?rounds:5));
+}
+
+function ownedFuturePicks(league,rosterId,pickMap){
+  const currentYear=Number(S.nflState?.season||SEASON);
+  const years=[currentYear+1,currentYear+2,currentYear+3];
+  const rounds=pickRoundsForLeague(league);
+  const traded=S.tradedPicks?.[league.league_id]||[];
+  const rosterIds=(S.rosters?.[league.league_id]||[]).map(r=>Number(r.roster_id)).filter(Number.isFinite);
+  const owned=[];
+  years.forEach(year=>{
+    for(let round=1;round<=rounds;round++){
+      rosterIds.forEach(originalRosterId=>{
+        const move=traded.find(p=>Number(p.season)===year&&Number(p.round)===round&&Number(p.roster_id)===originalRosterId);
+        const owner=move?Number(move.owner_id):originalRosterId;
+        if(owner!==Number(rosterId))return;
+        const id="pick:"+year+":"+round;
+        const card=pickMap?.[id];
+        owned.push({id,year,round,originalRosterId,valueCard:card||null});
+      });
+    }
+  });
+  return owned;
+}
+
+function draftCapitalMetrics(league,rosterId,pickMap,format){
+  const picks=ownedFuturePicks(league,rosterId,pickMap);
+  let total=0,firsts=0;
+  picks.forEach(p=>{
+    const value=Number(p.valueCard?.value?.[format]||0);
+    total+=value;
+    if(p.round===1)firsts++;
+  });
+  return{picks,total,firsts};
 }
 
 function percentile(value,values){
@@ -72,8 +122,8 @@ function dynastyRosterMetrics(league,valueMap){
 async function buildManagerRanking(){
   if(!$("managerRankingList"))return;
   $("managerRankingList").innerHTML='<div class="muted">Calculating dynasty roster strength…</div>';
-  let market=null;
-  try{market=await loadDynastyValues()}catch(e){console.warn("Dynasty values unavailable",e)}
+  let market=null,pickMarket=null;
+  try{[market,pickMarket]=await Promise.all([loadDynastyValues(),loadDynastyPickValues()])}catch(e){console.warn("Dynasty values unavailable",e)}
   const items=S.leagues.map(league=>{
     try{
       const rosters=S.rosters?.[league.league_id]||[];
@@ -88,7 +138,8 @@ async function buildManagerRanking(){
       const mustFix=isBestBallLeague(league)?0:starters.filter(r=>actionableInjury(r)&&must(r)).length+Number(lineup.emptySlots||0);
       const monitor=isBestBallLeague(league)?0:starters.filter(r=>actionableInjury(r)&&watch(r)).length;
       const marketMetrics=market?dynastyRosterMetrics(league,market.map):null;
-      return{leagueId:league.league_id,league:league.name,bestBall:isBestBallLeague(league),wins,losses,ties,games,winPct,pf,mustFix,monitor,marketMetrics};
+      const pickMetrics=pickMarket?draftCapitalMetrics(league,roster.roster_id,pickMarket.map,dynastyFormatForLeague(league)):null;
+      return{leagueId:league.league_id,league:league.name,bestBall:isBestBallLeague(league),wins,losses,ties,games,winPct,pf,mustFix,monitor,marketMetrics,pickMetrics};
     }catch{return null}
   }).filter(Boolean);
   managerRankingData=items;
@@ -100,10 +151,13 @@ function scoreAndRenderManagerRanking(market){
   const a=managerRankingData.slice();
   if(!a.length){$("managerRankingList").innerHTML='<div class="muted">No league ranking data available.</div>';return}
   const rosterValues=a.map(x=>x.marketMetrics?.rosterValue).filter(Number.isFinite);
+  const pickValues=a.map(x=>x.pickMetrics?.total).filter(Number.isFinite);
   const pfs=a.map(x=>x.pf);
   a.forEach(x=>{
     const roster=x.marketMetrics?percentile(x.marketMetrics.rosterValue,rosterValues):.5;
-    const future=x.marketMetrics?Math.min(1,Math.max(0,x.marketMetrics.youthShare)):.5;
+    const youth=x.marketMetrics?Math.min(1,Math.max(0,x.marketMetrics.youthShare)):.5;
+    const capital=x.pickMetrics?percentile(x.pickMetrics.total,pickValues):.5;
+    const future=(youth*.55)+(capital*.45);
     const contender=(x.winPct*.55)+(percentile(x.pf,pfs)*.45);
     const health=Math.max(0,1-(x.mustFix*.30+x.monitor*.10));
     // Dynasty-first score: market roster value is the anchor. Current-season
@@ -131,7 +185,9 @@ function scoreAndRenderManagerRanking(market){
     const c=x.components;
     const leaders=x.marketMetrics?.topAssets?.map(v=>esc(v.row.name)).join(" • ")||"Market values unavailable";
     const coverage=x.marketMetrics?Math.round(x.marketMetrics.coverage*100):0;
-    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">'+esc(x.profile)+(tags.length?' • '+esc(tags.join(" / ")):'')+' • Record '+record+' • PF '+formatScore(x.pf)+'</div><details class="rank-breakdown"><summary>Dynasty breakdown</summary><div class="rank-components"><div><span>Roster Strength</span><strong>'+c.roster+' / 45</strong></div><div><span>Future / Youth</span><strong>'+c.future+' / 20</strong></div><div><span>Contender</span><strong>'+c.contender+' / 25</strong></div><div><span>Depth / Health</span><strong>'+c.depthHealth+' / 10</strong></div></div><div class="muted">Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
+    const picks=x.pickMetrics?.picks||[];
+    const pickSummary=picks.length?(picks.length+" future picks • "+x.pickMetrics.firsts+" first"+(x.pickMetrics.firsts===1?"":"s")+" • pick value "+Math.round(x.pickMetrics.total)):"No future picks detected";
+    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">'+esc(x.profile)+(tags.length?' • '+esc(tags.join(" / ")):'')+' • Record '+record+' • PF '+formatScore(x.pf)+'</div><details class="rank-breakdown"><summary>Dynasty breakdown</summary><div class="rank-components"><div><span>Roster Strength</span><strong>'+c.roster+' / 45</strong></div><div><span>Future / Picks</span><strong>'+c.future+' / 20</strong></div><div><span>Contender</span><strong>'+c.contender+' / 25</strong></div><div><span>Depth / Health</span><strong>'+c.depthHealth+' / 10</strong></div></div><div class="muted">Draft capital: '+esc(pickSummary)+'.<br>Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
   }).join("");
   if(market){
     const asOf=market.valuesAsOf?.sf_dynasty||market.valuesAsOf?.non_sf_dynasty||"";
