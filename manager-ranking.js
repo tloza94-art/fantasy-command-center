@@ -6,13 +6,21 @@ let potentialUpgradeData=[];
 let potentialUpgradeProjectionState="idle";
 const UPGRADE_MIN_EDGE=2.5;
 const rankingBaseLoad=load;
+let tffccUpgradeTimer=null;
+function schedulePotentialUpgrades(delay=450){
+  if(tffccUpgradeTimer)clearTimeout(tffccUpgradeTimer);
+  tffccUpgradeTimer=setTimeout(()=>{
+    tffccUpgradeTimer=null;
+    if(S.user)buildPotentialUpgrades().catch(e=>console.warn("Deferred upgrade scan failed",e));
+  },delay);
+}
 load=async function(){
   await rankingBaseLoad();
   if(!S.user)return;
-  await Promise.all([
-    buildManagerRanking(),
-    buildPotentialUpgrades()
-  ]);
+  // Ranking is cheap and can render immediately. Projection parsing/scanning is
+  // deferred so the initial iOS UI becomes interactive first.
+  await buildManagerRanking();
+  schedulePotentialUpgrades();
 };
 
 async function buildManagerRanking(){
