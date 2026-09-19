@@ -155,15 +155,22 @@ function starterSlotsForLeague(league){
   return (league?.roster_positions||[]).map(x=>String(x||"").toUpperCase()).filter(x=>x&&!nonStarters.has(x));
 }
 
-function eligibleForStarterSlot(position,slot){
-  const p=String(position||"").toUpperCase(),s=String(slot||"").toUpperCase();
-  if(!p||!s)return false;
-  if(p===s)return true;
-  if(s==="FLEX"||s==="W/R/T"||s==="RB/WR/TE")return ["RB","WR","TE"].includes(p);
-  if(s==="SUPER_FLEX"||s==="SUPERFLEX"||s==="Q/W/R/T"||s==="QB/RB/WR/TE")return ["QB","RB","WR","TE"].includes(p);
-  if(s==="WRRB_FLEX"||s==="WR/RB")return ["WR","RB"].includes(p);
-  if(s==="REC_FLEX"||s==="WRTE_FLEX"||s==="WR/TE")return ["WR","TE"].includes(p);
-  if(s==="IDP_FLEX")return ["DL","DE","DT","LB","DB","CB","S","EDGE"].includes(p);
+function eligibleForStarterSlot(positionOrPlayer,slot){
+  const positions=Array.isArray(positionOrPlayer?.positions)&&positionOrPlayer.positions.length
+    ?positionOrPlayer.positions
+    :[typeof positionOrPlayer==="object"?positionOrPlayer?.pos:positionOrPlayer];
+  const ps=positions.map(x=>String(x||"").toUpperCase()).filter(Boolean);
+  const s=String(slot||"").toUpperCase();
+  if(!ps.length||!s)return false;
+  const any=allowed=>ps.some(p=>allowed.includes(p));
+  if(ps.includes(s))return true;
+  if(s==="FLEX"||s==="W/R/T"||s==="RB/WR/TE")return any(["RB","WR","TE"]);
+  if(s==="SUPER_FLEX"||s==="SUPERFLEX"||s==="Q/W/R/T"||s==="QB/RB/WR/TE")return any(["QB","RB","WR","TE"]);
+  if(s==="WRRB_FLEX"||s==="WR/RB")return any(["WR","RB"]);
+  if(s==="REC_FLEX"||s==="WRTE_FLEX"||s==="WR/TE")return any(["WR","TE"]);
+  if(s==="DL")return any(["DL","DE","DT","EDGE"]);
+  if(s==="DB")return any(["DB","CB","S"]);
+  if(s==="IDP_FLEX"||s==="IDP")return any(["DL","DE","DT","EDGE","LB","DB","CB","S"]);
   return false;
 }
 
@@ -171,15 +178,15 @@ function lineupCanFit(players,league){
   const slots=starterSlotsForLeague(league);
   if(players.length>slots.length)return false;
   const ordered=players.slice().sort((a,b)=>{
-    const ac=slots.filter(s=>eligibleForStarterSlot(a.pos,s)).length;
-    const bc=slots.filter(s=>eligibleForStarterSlot(b.pos,s)).length;
+    const ac=slots.filter(s=>eligibleForStarterSlot(a,s)).length;
+    const bc=slots.filter(s=>eligibleForStarterSlot(b,s)).length;
     return ac-bc;
   });
   const used=new Array(slots.length).fill(false);
   const place=i=>{
     if(i>=ordered.length)return true;
     for(let j=0;j<slots.length;j++){
-      if(used[j]||!eligibleForStarterSlot(ordered[i].pos,slots[j]))continue;
+      if(used[j]||!eligibleForStarterSlot(ordered[i],slots[j]))continue;
       used[j]=true;
       if(place(i+1))return true;
       used[j]=false;
