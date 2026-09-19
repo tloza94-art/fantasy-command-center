@@ -60,7 +60,13 @@ function scoreAndRenderManagerRanking(){
   a.forEach(x=>{
     const matchup=x.matchupState==="Leading"?1:x.matchupState==="Tied"?.5:0;
     const health=Math.max(0,1-(x.mustFix*.35+x.monitor*.12));
-    x.score=Math.round((x.winPct*.60+pfPercentile(x.pf)*.25+matchup*.10+health*.05)*100);
+    x.components={
+      record:Math.round(x.winPct*60),
+      points:Math.round(pfPercentile(x.pf)*25),
+      matchup:Math.round(matchup*10),
+      health:Math.round(health*5)
+    };
+    x.score=x.components.record+x.components.points+x.components.matchup+x.components.health;
     x.grade=x.score>=92?"A+":x.score>=88?"A":x.score>=84?"A-":x.score>=80?"B+":x.score>=76?"B":x.score>=72?"B-":x.score>=68?"C+":x.score>=64?"C":x.score>=60?"C-":x.score>=55?"D":"F";
   });
   a.sort((x,y)=>y.score-x.score||y.winPct-x.winPct||y.pf-x.pf);
@@ -74,7 +80,8 @@ function scoreAndRenderManagerRanking(){
     const score=x.oppPoints===null||x.oppPoints===undefined?formatScore(x.weekPoints):formatScore(x.weekPoints)+" vs "+formatScore(x.oppPoints);
     const opponent=x.opponentName?' • vs '+esc(x.opponentName):'';
     const alerts=x.bestBall?'<span class="league-chip">Best Ball</span>':(x.mustFix?'<span class="league-chip danger-chip">'+x.mustFix+' must fix</span>':'')+(x.monitor?'<span class="league-chip warn-chip">'+x.monitor+' monitor</span>':'');
-    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">Record '+record+' • '+Math.round(x.winPct*100)+'% • PF '+formatScore(x.pf)+'</div><div class="sub">Week: '+score+opponent+' • '+x.matchupState+'</div><div>'+alerts+'</div></div></div>';
+    const breakdown='<details class="rank-breakdown"><summary>Score breakdown</summary><div class="rank-components"><div><span>Record</span><strong>'+x.components.record+' / 60</strong></div><div><span>Points For</span><strong>'+x.components.points+' / 25</strong></div><div><span>Current Matchup</span><strong>'+x.components.matchup+' / 10</strong></div><div><span>Lineup Health</span><strong>'+x.components.health+' / 5</strong></div></div><div class="muted">Composite '+x.score+' / 100. Points For is ranked relative to the other teams in this portfolio.</div></details>';
+    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">Record '+record+' • '+Math.round(x.winPct*100)+'% • PF '+formatScore(x.pf)+'</div><div class="sub">Week: '+score+opponent+' • '+x.matchupState+'</div><div>'+alerts+'</div>'+breakdown+'</div></div>';
   }).join("");
 }
 
