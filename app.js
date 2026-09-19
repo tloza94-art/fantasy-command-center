@@ -1,5 +1,5 @@
 const API="https://api.sleeper.app/v1",SEASON="2026",ESPN_SCOREBOARD="https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
-let S={user:null,leagues:[],rows:[],players:{},nflState:{},lineups:[],matchups:{},gameStates:{},rosters:{},leagueUsers:{}};
+let S={user:null,leagues:[],rows:[],players:{},nflState:{},lineups:[],matchups:{},gameStates:{},rosters:{},leagueUsers:{},leagueProfiles:{}};
 const $=id=>document.getElementById(id);
 
 document.addEventListener("DOMContentLoaded",()=>{
@@ -41,7 +41,7 @@ async function load(){
       get(API+"/state/nfl").catch(()=>({})),
       get(ESPN_SCOREBOARD).catch(()=>null)
     ]);
-    S.leagues=leagues;S.players=players;S.nflState=nflState;
+    S.leagues=leagues;S.players=players;S.nflState=nflState;S.leagueProfiles=Object.fromEntries((leagues||[]).map(l=>[l.league_id,buildLeagueProfile(l)]));
     // Sleeper's state.week is the source of truth for the active fantasy week.
     // Normalize display_week to it so every supplemental TFFCC module rolls over
     // at the same time Sleeper does instead of getting ahead of the platform.
@@ -74,7 +74,10 @@ async function load(){
       S.lineups.push({leagueId:l.league_id,league:l.name,rosterId:r.roster_id,emptySlots,points:Number(mine?.points||0),opponentPoints:opp?Number(opp.points||0):null,opponentName,matchupId:mine?.matchup_id??null,bestBall});
       (r.players||[]).forEach(id=>{
         let p=S.players[id]||{},rosterStatus=ir.has(id)?"IR":tx.has(id)?"Taxi":st.has(id)?"Starter":"Bench";
-        S.rows.push({leagueId:l.league_id,league:l.name,id,name:p.full_name||((p.first_name||"")+" "+(p.last_name||"")).trim()||id,pos:p.position||"",team:p.team||"",rosterStatus,injury:p.injury_status||"",nflStatus:p.status||"",bestBall});
+        let positions=(Array.isArray(p.fantasy_positions)?p.fantasy_positions:[]).map(x=>String(x||"").toUpperCase()).filter(Boolean);
+        let primaryPos=String(p.position||positions[0]||"").toUpperCase();
+        if(primaryPos&&!positions.includes(primaryPos))positions.unshift(primaryPos);
+        S.rows.push({leagueId:l.league_id,league:l.name,id,name:p.full_name||((p.first_name||"")+" "+(p.last_name||"")).trim()||id,pos:primaryPos,positions,team:p.team||"",rosterStatus,injury:p.injury_status||"",nflStatus:p.status||"",bestBall});
       });
     });
     renderAll();
@@ -106,6 +109,42 @@ const norm=v=>String(v||"").trim().toLowerCase();
 function isBestBallLeague(l){
   let v=l?.settings?.best_ball;
   return v===1||v==="1"||v===true||norm(v)==="true";
+}
+
+// Build capabilities from the league itself instead of asking the manager to
+// configure league types. Features can key off this profile and stay invisible
+// when the format does not use them.
+function buildLeagueProfile(l){
+  const slots=(l?.roster_positions||[]).map(x=>String(x||"").toUpperCase());
+  const scoring=l?.scoring_settings||{};
+  const hasSlot=(...names)=>names.some(n=>slots.includes(n));
+  const defensiveSlots=new Set(["DL","DE","DT","LB","DB","CB","S","EDGE","IDP_FLEX","IDP"]);
+  const idp=slots.some(s=>defensiveSlots.has(s));
+  const superflex=hasSlot("SUPER_FLEX","SUPERFLEX","Q/W/R/T","QB/RB/WR/TE");
+  const tePremiumKeys=["bonus_rec_te","bonus_rec_te_0_5","bonus_rec_te_1","te_rec_bonus","rec_te"];
+  const tePremium=tePremiumKeys.some(k=>Number(scoring[k]||0)>0);
+  const ppr=Number(scoring.rec||0);
+  const formatTags=[];
+  if(superflex)formatTags.push("SF");
+  if(tePremium)formatTags.push("TEP");
+  if(idp)formatTags.push("IDP");
+  if(isBestBallLeague(l))formatTags.push("Best Ball");
+  return {
+    leagueId:l?.league_id,
+    slots,
+    scoring,
+    superflex,
+    tePremium,
+    idp,
+    bestBall:isBestBallLeague(l),
+    ppr,
+    formatTags
+  };
+}
+
+function leagueProfile(leagueOrId){
+  const id=typeof leagueOrId==="object"?leagueOrId?.league_id:leagueOrId;
+  return S.leagueProfiles?.[id]||(typeof leagueOrId==="object"?buildLeagueProfile(leagueOrId):null);
 }
 const must=r=>["o","out","ir","injured reserve","pup","susp","suspended"].includes(norm(r.injury))||norm(r.nflStatus)==="inactive";
 const watch=r=>["q","questionable","d","doubtful"].includes(norm(r.injury));
@@ -186,7 +225,7 @@ function card(r){return'<div class="player"><span class="badge">'+esc(r.injury||
 
 function renderLeagueSelect(){
   let s=$("leagueSelect"),old=s.value;
-  s.innerHTML=S.leagues.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(l=>'<option value="'+esc(l.league_id)+'">'+esc(l.name)+(isBestBallLeague(l)?' • Best Ball':'')+'</option>').join("");
+  s.innerHTML=S.leagues.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(l=>{let tags=leagueProfile(l)?.formatTags||[];return '<option value="'+esc(l.league_id)+'">'+esc(l.name)+(tags.length?' • '+esc(tags.join(" / ")):'')+'</option>'}).join("");
   if([...s.options].some(o=>o.value===old))s.value=old;
 }
 
