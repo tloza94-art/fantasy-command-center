@@ -23,53 +23,103 @@ load=async function(){
   schedulePotentialUpgrades();
 };
 
+const TFFCC_DYNASTY_VALUES_API="https://api.statsguyfantasy.com/api/v1/players";
+let tffccDynastyValuesCache=null;
+let tffccDynastyValuesAt=0;
+
+async function loadDynastyValues(){
+  if(tffccDynastyValuesCache&&Date.now()-tffccDynastyValuesAt<12*60*60*1000)return tffccDynastyValuesCache;
+  const payload=await get(TFFCC_DYNASTY_VALUES_API);
+  const map={};
+  (payload?.players||[]).forEach(p=>{if(p?.id)map[String(p.id)]=p});
+  if(!Object.keys(map).length)throw Error("No dynasty market values returned");
+  tffccDynastyValuesCache={map,valuesAsOf:payload.valuesAsOf||{}};
+  tffccDynastyValuesAt=Date.now();
+  return tffccDynastyValuesCache;
+}
+
+function percentile(value,values){
+  const clean=values.filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!clean.length)return .5;
+  if(clean.length===1)return 1;
+  return clean.filter(x=>x<value).length/(clean.length-1);
+}
+
+function dynastyFormatForLeague(league){
+  return leagueProfile(league)?.superflex?"sf_dynasty":"non_sf_dynasty";
+}
+
+function dynastyRosterMetrics(league,valueMap){
+  const rows=S.rows.filter(r=>String(r.leagueId)===String(league.league_id)&&r.rosterStatus!=="IR");
+  const format=dynastyFormatForLeague(league);
+  const assets=rows.map(r=>({row:r,value:Number(valueMap[String(r.id)]?.value?.[format]||0),age:Number(valueMap[String(r.id)]?.age)}));
+  const valued=assets.filter(x=>x.value>0);
+  const sorted=valued.slice().sort((a,b)=>b.value-a.value);
+  const starterCount=Math.max(1,starterSlotsForLeague(league).length);
+  // Weight the players who can actually drive a lineup most heavily, while
+  // still rewarding useful dynasty depth. This prevents huge benches from
+  // automatically winning the roster-value comparison.
+  const core=sorted.slice(0,starterCount).reduce((n,x)=>n+x.value,0);
+  const depth=sorted.slice(starterCount,starterCount*2).reduce((n,x)=>n+x.value*.35,0);
+  const rosterValue=core+depth;
+  const youngCore=sorted.slice(0,Math.min(starterCount,8)).filter(x=>Number.isFinite(x.age)&&x.age<=25).reduce((n,x)=>n+x.value,0);
+  const topCore=sorted.slice(0,Math.min(starterCount,8)).reduce((n,x)=>n+x.value,0)||1;
+  const youthShare=youngCore/topCore;
+  const coverage=rows.length?valued.length/rows.length:0;
+  return{format,rosterValue,youthShare,coverage,topAssets:sorted.slice(0,3)};
+}
+
 async function buildManagerRanking(){
+  if(!$("managerRankingList"))return;
+  $("managerRankingList").innerHTML='<div class="muted">Calculating dynasty roster strength…</div>';
+  let market=null;
+  try{market=await loadDynastyValues()}catch(e){console.warn("Dynasty values unavailable",e)}
   const items=S.leagues.map(league=>{
     try{
-      // Reuse the roster payload already loaded by app.js instead of making
-      // one extra Sleeper roster request for every league on every refresh.
       const rosters=S.rosters?.[league.league_id]||[];
       const roster=rosters.find(r=>String(r.owner_id)===String(S.user.user_id));
       if(!roster)return null;
       const settings=roster.settings||{};
       const wins=Number(settings.wins||0),losses=Number(settings.losses||0),ties=Number(settings.ties||0);
-      const games=wins+losses+ties;
-      const winPct=games?((wins+ties*.5)/games):0;
+      const games=wins+losses+ties,winPct=games?((wins+ties*.5)/games):0;
       const pf=Number(settings.fpts||0)+(Number(settings.fpts_decimal||0)/100);
-      const lineup=S.lineups.find(x=>x.leagueId===league.league_id)||{};
-      const rows=S.rows.filter(r=>r.leagueId===league.league_id&&r.rosterStatus==="Starter");
-      const mustFix=league.settings&&isBestBallLeague(league)?0:rows.filter(r=>actionableInjury(r)&&must(r)).length+Number(lineup.emptySlots||0);
-      const monitor=league.settings&&isBestBallLeague(league)?0:rows.filter(r=>actionableInjury(r)&&watch(r)).length;
-      let matchupState="No matchup";
-      if(lineup.matchupId!==null&&lineup.matchupId!==undefined&&lineup.opponentPoints!==null&&lineup.opponentPoints!==undefined){
-        matchupState=lineup.points>lineup.opponentPoints?"Leading":lineup.points<lineup.opponentPoints?"Trailing":"Tied";
-      }
-      return {leagueId:league.league_id,league:league.name,bestBall:isBestBallLeague(league),wins,losses,ties,games,winPct,pf,weekPoints:Number(lineup.points||0),oppPoints:lineup.opponentPoints,opponentName:lineup.opponentName||null,matchupState,mustFix,monitor};
+      const lineup=S.lineups.find(x=>String(x.leagueId)===String(league.league_id))||{};
+      const starters=S.rows.filter(r=>String(r.leagueId)===String(league.league_id)&&r.rosterStatus==="Starter");
+      const mustFix=isBestBallLeague(league)?0:starters.filter(r=>actionableInjury(r)&&must(r)).length+Number(lineup.emptySlots||0);
+      const monitor=isBestBallLeague(league)?0:starters.filter(r=>actionableInjury(r)&&watch(r)).length;
+      const marketMetrics=market?dynastyRosterMetrics(league,market.map):null;
+      return{leagueId:league.league_id,league:league.name,bestBall:isBestBallLeague(league),wins,losses,ties,games,winPct,pf,mustFix,monitor,marketMetrics};
     }catch{return null}
-  });
-  managerRankingData=items.filter(Boolean);
-  scoreAndRenderManagerRanking();
+  }).filter(Boolean);
+  managerRankingData=items;
+  scoreAndRenderManagerRanking(market);
 }
 
-function scoreAndRenderManagerRanking(){
+function scoreAndRenderManagerRanking(market){
   if(!$("managerRankingList"))return;
   const a=managerRankingData.slice();
   if(!a.length){$("managerRankingList").innerHTML='<div class="muted">No league ranking data available.</div>';return}
-  const pfs=a.map(x=>x.pf).sort((x,y)=>x-y);
-  const pfPercentile=v=>pfs.length===1?1:pfs.filter(x=>x<v).length/(pfs.length-1);
+  const rosterValues=a.map(x=>x.marketMetrics?.rosterValue).filter(Number.isFinite);
+  const pfs=a.map(x=>x.pf);
   a.forEach(x=>{
-    const matchup=x.matchupState==="Leading"?1:x.matchupState==="Tied"?.5:0;
-    const health=Math.max(0,1-(x.mustFix*.35+x.monitor*.12));
+    const roster=x.marketMetrics?percentile(x.marketMetrics.rosterValue,rosterValues):.5;
+    const future=x.marketMetrics?Math.min(1,Math.max(0,x.marketMetrics.youthShare)):.5;
+    const contender=(x.winPct*.55)+(percentile(x.pf,pfs)*.45);
+    const health=Math.max(0,1-(x.mustFix*.30+x.monitor*.10));
+    // Dynasty-first score: market roster value is the anchor. Current-season
+    // results matter, but no single weekly matchup affects the ranking.
     x.components={
-      record:Math.round(x.winPct*60),
-      points:Math.round(pfPercentile(x.pf)*25),
-      matchup:Math.round(matchup*10),
-      health:Math.round(health*5)
+      roster:Math.round(roster*45),
+      future:Math.round(future*20),
+      contender:Math.round(contender*25),
+      depthHealth:Math.round(health*10)
     };
-    x.score=x.components.record+x.components.points+x.components.matchup+x.components.health;
+    x.score=x.components.roster+x.components.future+x.components.contender+x.components.depthHealth;
     x.grade=x.score>=92?"A+":x.score>=88?"A":x.score>=84?"A-":x.score>=80?"B+":x.score>=76?"B":x.score>=72?"B-":x.score>=68?"C+":x.score>=64?"C":x.score>=60?"C-":x.score>=55?"D":"F";
+    const c=x.components;
+    x.profile=c.future>=16&&c.contender>=18?"Young Contender":c.contender>=19?"Contender":c.future>=16?"Ascending":c.roster>=34?"Strong Core":"Retool";
   });
-  a.sort((x,y)=>y.score-x.score||y.winPct-x.winPct||y.pf-x.pf);
+  a.sort((x,y)=>y.score-x.score||y.components.roster-x.components.roster||y.pf-x.pf);
   const totalWins=a.reduce((n,x)=>n+x.wins,0),avgWin=Math.round(a.reduce((n,x)=>n+x.winPct,0)/a.length*100);
   $("rankedLeagueCount").textContent=a.length;
   $("rankingWins").textContent=totalWins;
@@ -77,13 +127,18 @@ function scoreAndRenderManagerRanking(){
   $("rankingBest").textContent=a[0]?.grade||"—";
   $("managerRankingList").innerHTML=a.map((x,i)=>{
     const record=x.wins+"-"+x.losses+(x.ties?"-"+x.ties:"");
-    const score=x.oppPoints===null||x.oppPoints===undefined?formatScore(x.weekPoints):formatScore(x.weekPoints)+" vs "+formatScore(x.oppPoints);
-    const opponent=x.opponentName?' • vs '+esc(x.opponentName):'';
-    const alerts=x.bestBall?'<span class="league-chip">Best Ball</span>':(x.mustFix?'<span class="league-chip danger-chip">'+x.mustFix+' must fix</span>':'')+(x.monitor?'<span class="league-chip warn-chip">'+x.monitor+' monitor</span>':'');
-    const breakdown='<details class="rank-breakdown"><summary>Score breakdown</summary><div class="rank-components"><div><span>Record</span><strong>'+x.components.record+' / 60</strong></div><div><span>Points For</span><strong>'+x.components.points+' / 25</strong></div><div><span>Current Matchup</span><strong>'+x.components.matchup+' / 10</strong></div><div><span>Lineup Health</span><strong>'+x.components.health+' / 5</strong></div></div><div class="muted">Composite '+x.score+' / 100. Points For is ranked relative to the other teams in this portfolio.</div></details>';
-    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">Record '+record+' • '+Math.round(x.winPct*100)+'% • PF '+formatScore(x.pf)+'</div><div class="sub">Week: '+score+opponent+' • '+x.matchupState+'</div><div>'+alerts+'</div>'+breakdown+'</div></div>';
+    const tags=leagueProfile(x.leagueId)?.formatTags||[];
+    const c=x.components;
+    const leaders=x.marketMetrics?.topAssets?.map(v=>esc(v.row.name)).join(" • ")||"Market values unavailable";
+    const coverage=x.marketMetrics?Math.round(x.marketMetrics.coverage*100):0;
+    return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">'+esc(x.profile)+(tags.length?' • '+esc(tags.join(" / ")):'')+' • Record '+record+' • PF '+formatScore(x.pf)+'</div><details class="rank-breakdown"><summary>Dynasty breakdown</summary><div class="rank-components"><div><span>Roster Strength</span><strong>'+c.roster+' / 45</strong></div><div><span>Future / Youth</span><strong>'+c.future+' / 20</strong></div><div><span>Contender</span><strong>'+c.contender+' / 25</strong></div><div><span>Depth / Health</span><strong>'+c.depthHealth+' / 10</strong></div></div><div class="muted">Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
   }).join("");
+  if(market){
+    const asOf=market.valuesAsOf?.sf_dynasty||market.valuesAsOf?.non_sf_dynasty||"";
+    $("managerRankingList").insertAdjacentHTML("afterend",'<div id="dynastyValueCredit" class="muted ranking-note">Dynasty player market values by <a href="https://statsguyfantasy.com" target="_blank" rel="noopener">Stats Guy Fantasy</a>'+(asOf?' • values updated '+esc(new Date(asOf).toLocaleDateString()):'')+'. TFFCC applies league format and its own portfolio scoring.</div>');
+  }
 }
+
 
 async function buildPotentialUpgrades(){
   ensurePotentialUpgradeUI();
