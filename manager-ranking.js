@@ -189,6 +189,8 @@ function scoreAndRenderManagerRanking(market){
     const pickSummary=picks.length?(picks.length+" future picks • "+x.pickMetrics.firsts+" first"+(x.pickMetrics.firsts===1?"":"s")+" • pick value "+Math.round(x.pickMetrics.total)):"No future picks detected";
     return '<div class="player ranking-card"><div class="rank-number">#'+(i+1)+'</div><div class="rank-grade">'+x.grade+'<small>'+x.score+'</small></div><div class="rank-main"><div class="player-name">'+esc(x.league)+'</div><div class="sub">'+esc(x.profile)+(tags.length?' • '+esc(tags.join(" / ")):'')+' • Record '+record+' • PF '+formatScore(x.pf)+'</div><details class="rank-breakdown"><summary>Dynasty breakdown</summary><div class="rank-components"><div><span>Roster Strength</span><strong>'+c.roster+' / 45</strong></div><div><span>Future / Picks</span><strong>'+c.future+' / 20</strong></div><div><span>Contender</span><strong>'+c.contender+' / 25</strong></div><div><span>Depth / Health</span><strong>'+c.depthHealth+' / 10</strong></div></div><div class="muted">Draft capital: '+esc(pickSummary)+'.<br>Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
   }).join("");
+  const oldCredit=$("dynastyValueCredit");
+  if(oldCredit)oldCredit.remove();
   if(market){
     const asOf=market.valuesAsOf?.sf_dynasty||market.valuesAsOf?.non_sf_dynasty||"";
     $("managerRankingList").insertAdjacentHTML("afterend",'<div id="dynastyValueCredit" class="muted ranking-note">Dynasty player market values by <a href="https://statsguyfantasy.com" target="_blank" rel="noopener">Stats Guy Fantasy</a>'+(asOf?' • values updated '+esc(new Date(asOf).toLocaleDateString()):'')+'. TFFCC applies league format and its own portfolio scoring.</div>');
