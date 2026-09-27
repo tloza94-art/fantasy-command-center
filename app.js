@@ -4,7 +4,30 @@ const $=id=>document.getElementById(id);
 
 document.addEventListener("DOMContentLoaded",()=>{
   localStorage.removeItem("fcc_username");
-  $("username").value="";
+  const saved=localStorage.getItem("tffcc_saved_profile");
+  $("username").value=saved||"";
+  $("rememberProfile").checked=!!saved;
+  $("forgetProfile").hidden=!saved;
+  $("rememberProfile").onchange=()=>{
+    if(!$("rememberProfile").checked){
+      localStorage.removeItem("tffcc_saved_profile");
+      $("forgetProfile").hidden=true;
+    }else if(S.user&&norm($("username").value)===norm(S.user.username)){
+      localStorage.setItem("tffcc_saved_profile",S.user.username);
+      $("forgetProfile").hidden=false;
+    }
+  };
+  $("forgetProfile").onclick=()=>{
+    localStorage.removeItem("tffcc_saved_profile");
+    $("rememberProfile").checked=false;
+    $("forgetProfile").hidden=true;
+    $("username").value="";
+    S={user:null,leagues:[],rows:[],players:S.players||{},nflState:{},lineups:[],matchups:{},gameStates:{},rosters:{},leagueUsers:{},leagueProfiles:{},tradedPicks:{}};
+    renderAll();
+    if(typeof managerRankingData!=="undefined")managerRankingData=[];
+    if($("managerRankingList"))$("managerRankingList").innerHTML='<div class="muted">Load a manager to calculate rankings.</div>';
+    status("Saved profile forgotten on this device.");
+  };
   $("loadBtn").onclick=load;
   $("refreshBtn").onclick=load;
   $("sundayRefreshBtn").onclick=load;
@@ -13,6 +36,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>switchView(b));
   if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js");
   renderSearch();
+  if(saved)setTimeout(()=>{if($("username").value===saved)load()},300);
 });
 
 function switchView(button){
@@ -86,6 +110,10 @@ async function load(){
         S.rows.push({leagueId:l.league_id,league:l.name,id,name:p.full_name||((p.first_name||"")+" "+(p.last_name||"")).trim()||id,pos:primaryPos,positions,team:p.team||"",rosterStatus,injury:p.injury_status||"",nflStatus:p.status||"",bestBall});
       });
     });
+    if($("rememberProfile").checked){
+      try{localStorage.setItem("tffcc_saved_profile",user.username);$("forgetProfile").hidden=false}
+      catch(e){console.warn("Could not save profile",e)}
+    }
     renderAll();
     status((user.display_name||user.username)+" • "+S.leagues.length+" leagues • Week "+week+" • "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}));
   }catch(e){status("Could not load: "+e.message)}
