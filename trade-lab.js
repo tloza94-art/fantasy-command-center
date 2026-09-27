@@ -89,7 +89,29 @@ function tradeRender(){
   const mineAssets=tradeAssets(league,mine),theirAssets=tradeAssets(league,partner);
   const sent=tradeSelectedTotal(mineAssets,tradeLab.send),received=tradeSelectedTotal(theirAssets,tradeLab.receive);
   const delta=received.total-sent.total;
-  const assetList=(assets,selected,side)=>assets.map(a=>'<label class="trade-asset"><input type="checkbox" data-side="'+side+'" data-key="'+esc(a.key)+'" '+(selected.has(a.key)?"checked":"")+'><span><strong>'+esc(a.name)+'</strong><small>'+esc(a.position)+'</small></span><em>'+(a.value===null?"Unvalued":Math.round(a.value).toLocaleString())+'</em></label>').join("");
+  const positionOrder=["QB","RB","WR","TE","K","DEF","DL","DE","DT","LB","DB","CB","S","IDP","OTHER","PICK"];
+  const assetList=(assets,selected,side)=>{
+    const groups={};
+    assets.forEach(asset=>{
+      const position=asset.type==="pick"?"PICK":String(asset.position||"OTHER").toUpperCase();
+      const group=positionOrder.includes(position)?position:"OTHER";
+      (groups[group]??=[]).push(asset);
+    });
+    return positionOrder.filter(group=>groups[group]?.length).map(group=>{
+      const sorted=groups[group].sort((a,b)=>{
+        if(group==="PICK"){
+          const x=a.key.split(":"),y=b.key.split(":");
+          return Number(x[1])-Number(y[1])||Number(x[2])-Number(y[2])||Number(x[3])-Number(y[3]);
+        }
+        if(a.value===null)return b.value===null?a.name.localeCompare(b.name):1;
+        if(b.value===null)return -1;
+        return b.value-a.value||a.name.localeCompare(b.name);
+      });
+      return '<div class="trade-position-group"><div class="trade-position-heading">'+esc(group==="PICK"?"DRAFT PICKS":group)+' <span>'+sorted.length+'</span></div>'+
+        sorted.map(asset=>'<label class="trade-asset"><input type="checkbox" data-side="'+side+'" data-key="'+esc(asset.key)+'" '+(selected.has(asset.key)?"checked":"")+'><span><strong>'+esc(asset.name)+'</strong><small>'+esc(asset.position)+'</small></span><em>'+(asset.value===null?"Unvalued":Math.round(asset.value).toLocaleString())+'</em></label>').join("")+'</div>';
+    }).join("");
+  };
+  const scrollPositions=[...target.querySelectorAll('.trade-assets')].map(el=>el.scrollTop);
   target.innerHTML='<div class="lab-heading"><strong>Trade Lab</strong><span class="lab-chip">WHAT-IF ONLY</span></div>'+
     '<p class="muted">Build a hypothetical trade with a manager in this league. Nothing is sent to Sleeper.</p>'+
     '<label class="trade-label">Trade partner</label><select id="tradePartner">'+others.map(r=>'<option value="'+esc(r.roster_id)+'" '+(String(r.roster_id)===tradeLab.partnerId?"selected":"")+'>'+esc(tradeRosterName(league,r))+'</option>').join("")+'</select>'+
@@ -100,6 +122,7 @@ function tradeRender(){
     tradeImpact(league,mine,partner,mineAssets,theirAssets)+
     '<div class="lab-actions"><button type="button" id="tradeClear">Clear trade</button><button type="button" id="tradeReload" '+(tradeLab.loading?"disabled":"")+'>'+(tradeLab.loading?"Loading…":"Refresh values")+'</button></div>'+
     '<p class="muted">Market value is a reference, not a fairness verdict. This first version does not adjust for roster needs, league-specific scoring premiums, or championship odds.</p>';
+  target.querySelectorAll(".trade-assets").forEach((el,i)=>{el.scrollTop=scrollPositions[i]||0});
   $("tradePartner").onchange=e=>{tradeLab.partnerId=e.target.value;tradeReset();tradeRender()};
   target.querySelectorAll(".trade-asset input").forEach(input=>input.onchange=()=>{
     const selected=input.dataset.side==="send"?tradeLab.send:tradeLab.receive;
