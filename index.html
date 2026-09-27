@@ -69,6 +69,8 @@
 
 <section id="teamsView" class="view">
 <section class="card"><label>League</label><select id="leagueSelect"></select></section>
+<div class="team-modes" role="group" aria-label="Team tools"><button type="button" class="selected" data-team-mode="roster" aria-pressed="true">Roster + Lineup</button><button type="button" data-team-mode="trade" aria-pressed="false">Trade Lab</button></div>
+<section id="tradeLab" class="card" hidden></section>
 <section id="lineupLab" class="card lineup-lab"><div class="muted">Select a league to test lineup changes.</div></section>
 <div id="teamRoster"></div>
 </section>
@@ -96,6 +98,7 @@
 <script src="manager-ranking.js"></script>
 <script src="upgrade-popup.js"></script>
 <script src="lineup-lab.js"></script>
+<script src="trade-lab.js"></script>
 <script src="resume-refresh.js"></script>
 <script src="pull-refresh.js"></script>
 </body></html>
