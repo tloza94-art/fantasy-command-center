@@ -23,6 +23,58 @@ function tradeSelectedTotal(assets,selected){
   const chosen=assets.filter(a=>selected.has(a.key));
   return{total:chosen.reduce((n,a)=>n+(a.value||0),0),missing:chosen.filter(a=>a.value===null).length,count:chosen.length};
 }
+
+function tradeImpact(league,mine,partner,mineAssets,theirAssets){
+  const sent=mineAssets.filter(a=>tradeLab.send.has(a.key));
+  const received=theirAssets.filter(a=>tradeLab.receive.has(a.key));
+  if(!sent.length&&!received.length)return '<div class="trade-impact"><h3>How this affects your team</h3><p class="muted">Select players or picks on either side to preview the impact.</p></div>';
+  const playerIds=assets=>assets.filter(a=>a.type==="player").map(a=>a.key.slice(7));
+  const outgoing=playerIds(sent),incoming=playerIds(received);
+  const beforeIds=(mine.players||[]).map(String);
+  const afterIds=beforeIds.filter(id=>!outgoing.includes(id)).concat(incoming);
+  const positions=["QB","RB","WR","TE"];
+  const positionOf=id=>String(S.players?.[id]?.position||"?").toUpperCase();
+  const counts=ids=>Object.fromEntries(positions.map(pos=>[pos,ids.filter(id=>positionOf(id)===pos).length]));
+  const beforeCounts=counts(beforeIds),afterCounts=counts(afterIds);
+  const positionRows=positions.map(pos=>{
+    const diff=afterCounts[pos]-beforeCounts[pos];
+    return '<div><span>'+pos+'</span><strong>'+beforeCounts[pos]+' → '+afterCounts[pos]+' <small class="'+(diff>0?"lab-gain":diff<0?"lab-loss":"")+'">'+(diff>0?"+":"")+(diff||"")+'</small></strong></div>';
+  }).join("");
+  const outgoingPicks=sent.filter(a=>a.type==="pick"),incomingPicks=received.filter(a=>a.type==="pick");
+  const originalPicks=ownedFuturePicks(league,mine.roster_id,tradeLab.pickMarket?.map||{});
+  const pickKey=p=>"pick:"+p.year+":"+p.round+":"+p.originalRosterId;
+  const afterPickCount=originalPicks.length-outgoingPicks.length+incomingPicks.length;
+  const firstsBefore=originalPicks.filter(p=>p.round===1).length;
+  const firstsAfter=firstsBefore-outgoingPicks.filter(a=>Number(a.key.split(":")[2])===1).length+incomingPicks.filter(a=>Number(a.key.split(":")[2])===1).length;
+  const allKnown=[...mineAssets,...theirAssets].filter(a=>a.type==="player");
+  const format=dynastyFormatForLeague(league);
+  const value=id=>{const v=tradeLab.market?.map?.[id]?.value?.[format];return v==null?null:Number(v)};
+  const starterCount=Math.max(1,starterSlotsForLeague(league).length);
+  const coreValue=ids=>{
+    const vals=ids.map(value).filter(v=>v!==null&&Number.isFinite(v)).sort((a,b)=>b-a);
+    return vals.slice(0,starterCount).reduce((n,v)=>n+v,0)+vals.slice(starterCount,starterCount*2).reduce((n,v)=>n+v*.35,0);
+  };
+  const known=tradeLab.market&&[...outgoing,...incoming].every(id=>value(id)!==null);
+  const currentCore=coreValue(beforeIds),nextCore=coreValue(afterIds);
+  const delta=nextCore-currentCore;
+  const rosters=S.rosters?.[league.league_id]||[];
+  let rankText='<p class="muted">League rank preview requires market values.</p>';
+  if(known&&rosters.length>1){
+    // Compare against the same league, not the user's other portfolios.
+    const baseline=rosters.map(r=>({id:String(r.roster_id),score:coreValue((r.players||[]).map(String))}));
+    const rank=score=>1+baseline.filter(r=>r.id!==String(mine.roster_id)&&r.score>score).length;
+    const before=rank(currentCore),after=rank(nextCore);
+    rankText='<div class="trade-rank-change"><span>Roster strength in this league</span><strong>#'+before+' → #'+after+' of '+rosters.length+'</strong></div><small class="muted">Market-value roster ranking only; this does not recalculate season standings or championship probability.</small>';
+  }
+  const incomplete=[...sent,...received].some(a=>a.value===null);
+  return '<div class="trade-impact"><h3>How this affects your team</h3>'+
+    '<div class="trade-impact-grid"><div><span>Core roster value</span><strong>'+(known?(delta>0?"+":"")+Math.round(delta).toLocaleString():"Unavailable")+'</strong></div><div><span>Future picks</span><strong>'+originalPicks.length+' → '+afterPickCount+'</strong></div><div><span>Future firsts</span><strong>'+firstsBefore+' → '+firstsAfter+'</strong></div></div>'+
+    '<h4>Positional depth</h4><div class="rank-components rank-components-readable">'+positionRows+'</div>'+
+    rankText+
+    (incomplete?'<p class="muted">Some traded assets lack market values. The value comparison is incomplete.</p>':'')+
+    '<p class="muted">This preview assumes the trade is completed; it does not alter Sleeper rosters or automatically change your starting lineup.</p></div>';
+}
+
 function tradeReset(){tradeLab.send.clear();tradeLab.receive.clear()}
 function tradeRender(){
   const target=$("tradeLab");if(!target)return;
@@ -45,6 +97,7 @@ function tradeRender(){
     '<div class="trade-result"><div><span>Send value</span><strong>'+Math.round(sent.total).toLocaleString()+'</strong></div><div><span>Receive value</span><strong>'+Math.round(received.total).toLocaleString()+'</strong></div><div><span>Net value</span><strong class="'+(delta>0?"lab-gain":delta<0?"lab-loss":"")+'">'+(delta>0?"+":"")+Math.round(delta).toLocaleString()+'</strong></div></div>'+
     (sent.missing+received.missing?'<p class="muted">⚠️ '+(sent.missing+received.missing)+' selected asset(s) have no market value; the comparison is incomplete.</p>':'')+
     (!tradeLab.market||!tradeLab.pickMarket?'<p class="muted">Market data is unavailable or still loading; unvalued assets are not zero-value assets.</p>':'')+
+    tradeImpact(league,mine,partner,mineAssets,theirAssets)+
     '<div class="lab-actions"><button type="button" id="tradeClear">Clear trade</button><button type="button" id="tradeReload" '+(tradeLab.loading?"disabled":"")+'>'+(tradeLab.loading?"Loading…":"Refresh values")+'</button></div>'+
     '<p class="muted">Market value is a reference, not a fairness verdict. This first version does not adjust for roster needs, league-specific scoring premiums, or championship odds.</p>';
   $("tradePartner").onchange=e=>{tradeLab.partnerId=e.target.value;tradeReset();tradeRender()};
