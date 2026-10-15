@@ -20,7 +20,8 @@ function labLocked(id){
 }
 function labInitial(league,roster){
   const slots=starterSlotsForLeague(league);
-  const original=roster.starters||[];
+  const matchup=(S.matchups?.[league.league_id]||[]).find(m=>String(m.roster_id)===String(roster.roster_id));
+  const original=Array.isArray(matchup?.starters)?matchup.starters:[];
   return slots.map((slot,i)=>original[i]&&original[i]!=="0"?String(original[i]):"");
 }
 function labCurrent(league,roster){
