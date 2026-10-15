@@ -95,16 +95,16 @@ async function load(){
       if(!r)return;
       let bestBall=isBestBallLeague(l);
       let mine=(mu||[]).find(m=>Number(m.roster_id)===Number(r.roster_id));
-      let currentStarters=Array.isArray(mine?.starters)?mine.starters:r.starters||[];
+      let currentStarters=Array.isArray(mine?.starters)?mine.starters:[];
       let st=new Set(currentStarters.filter(id=>id&&id!=="0")),ir=new Set(r.reserve||[]),tx=new Set(r.taxi||[]);
-      let emptySlots=currentStarters.filter(id=>!id||id==="0").length;
+      let emptySlots=mine?currentStarters.filter(id=>!id||id==="0").length:0;
       let opp=mine?(mu||[]).find(m=>m.matchup_id===mine.matchup_id&&Number(m.roster_id)!==Number(r.roster_id)):null;
       let oppRoster=opp?(rs||[]).find(x=>Number(x.roster_id)===Number(opp.roster_id)):null;
       let oppUser=oppRoster?.owner_id?(us||[]).find(x=>String(x.user_id)===String(oppRoster.owner_id)):null;
       let opponentName=oppUser?.metadata?.team_name||oppUser?.display_name||oppUser?.username||null;
       S.lineups.push({leagueId:l.league_id,league:l.name,rosterId:r.roster_id,emptySlots,points:Number(mine?.points||0),opponentPoints:opp?Number(opp.points||0):null,opponentName,matchupId:mine?.matchup_id??null,bestBall});
       (r.players||[]).forEach(id=>{
-        let p=S.players[id]||{},rosterStatus=ir.has(id)?"IR":tx.has(id)?"Taxi":st.has(id)?"Starter":"Bench";
+        let p=S.players[id]||{},rosterStatus=st.has(id)?"Starter":ir.has(id)?"IR":tx.has(id)?"Taxi":"Bench";
         let positions=(Array.isArray(p.fantasy_positions)?p.fantasy_positions:[]).map(x=>String(x||"").toUpperCase()).filter(Boolean);
         let primaryPos=String(p.position||positions[0]||"").toUpperCase();
         if(primaryPos&&!positions.includes(primaryPos))positions.unshift(primaryPos);
