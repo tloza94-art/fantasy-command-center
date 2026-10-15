@@ -85,11 +85,12 @@ async function tffccRefreshAfterResume(){
       const roster=(rosters||[]).find(x=>String(x.owner_id)===String(S.user.user_id));
       if(!roster)return;
       const bestBall=isBestBallLeague(league);
-      const starters=new Set((roster.starters||[]).filter(id=>id&&id!=="0"));
+      const mine=(matchups||[]).find(m=>Number(m.roster_id)===Number(roster.roster_id));
+      const currentStarters=Array.isArray(mine?.starters)?mine.starters:roster.starters||[];
+      const starters=new Set(currentStarters.filter(id=>id&&id!=="0"));
       const ir=new Set(roster.reserve||[]);
       const taxi=new Set(roster.taxi||[]);
-      const emptySlots=(roster.starters||[]).filter(id=>!id||id==="0").length;
-      const mine=(matchups||[]).find(m=>Number(m.roster_id)===Number(roster.roster_id));
+      const emptySlots=currentStarters.filter(id=>!id||id==="0").length;
       const opp=mine?(matchups||[]).find(m=>m.matchup_id===mine.matchup_id&&Number(m.roster_id)!==Number(roster.roster_id)):null;
       const oppRoster=opp?(rosters||[]).find(x=>Number(x.roster_id)===Number(opp.roster_id)):null;
       const oppUser=oppRoster?.owner_id?users.find(x=>String(x.user_id)===String(oppRoster.owner_id)):null;
