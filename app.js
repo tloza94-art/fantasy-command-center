@@ -94,9 +94,10 @@ async function load(){
       let r=rs.find(x=>String(x.owner_id)===String(user.user_id));
       if(!r)return;
       let bestBall=isBestBallLeague(l);
-      let st=new Set((r.starters||[]).filter(id=>id&&id!=="0")),ir=new Set(r.reserve||[]),tx=new Set(r.taxi||[]);
-      let emptySlots=(r.starters||[]).filter(id=>!id||id==="0").length;
       let mine=(mu||[]).find(m=>Number(m.roster_id)===Number(r.roster_id));
+      let currentStarters=Array.isArray(mine?.starters)?mine.starters:r.starters||[];
+      let st=new Set(currentStarters.filter(id=>id&&id!=="0")),ir=new Set(r.reserve||[]),tx=new Set(r.taxi||[]);
+      let emptySlots=currentStarters.filter(id=>!id||id==="0").length;
       let opp=mine?(mu||[]).find(m=>m.matchup_id===mine.matchup_id&&Number(m.roster_id)!==Number(r.roster_id)):null;
       let oppRoster=opp?(rs||[]).find(x=>Number(x.roster_id)===Number(opp.roster_id)):null;
       let oppUser=oppRoster?.owner_id?(us||[]).find(x=>String(x.user_id)===String(oppRoster.owner_id)):null;
