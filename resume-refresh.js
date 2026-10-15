@@ -86,11 +86,11 @@ async function tffccRefreshAfterResume(){
       if(!roster)return;
       const bestBall=isBestBallLeague(league);
       const mine=(matchups||[]).find(m=>Number(m.roster_id)===Number(roster.roster_id));
-      const currentStarters=Array.isArray(mine?.starters)?mine.starters:roster.starters||[];
+      const currentStarters=Array.isArray(mine?.starters)?mine.starters:[];
       const starters=new Set(currentStarters.filter(id=>id&&id!=="0"));
       const ir=new Set(roster.reserve||[]);
       const taxi=new Set(roster.taxi||[]);
-      const emptySlots=currentStarters.filter(id=>!id||id==="0").length;
+      const emptySlots=mine?currentStarters.filter(id=>!id||id==="0").length:0;
       const opp=mine?(matchups||[]).find(m=>m.matchup_id===mine.matchup_id&&Number(m.roster_id)!==Number(roster.roster_id)):null;
       const oppRoster=opp?(rosters||[]).find(x=>Number(x.roster_id)===Number(opp.roster_id)):null;
       const oppUser=oppRoster?.owner_id?users.find(x=>String(x.user_id)===String(oppRoster.owner_id)):null;
@@ -99,7 +99,7 @@ async function tffccRefreshAfterResume(){
       nextLineups.push({leagueId,league:league.name,rosterId:roster.roster_id,emptySlots,points:Number(mine?.points||0),opponentPoints:opp?Number(opp.points||0):null,opponentName,matchupId:mine?.matchup_id??null,bestBall});
       (roster.players||[]).forEach(id=>{
         const p=S.players[id]||{};
-        const rosterStatus=ir.has(id)?"IR":taxi.has(id)?"Taxi":starters.has(id)?"Starter":"Bench";
+        const rosterStatus=starters.has(id)?"Starter":ir.has(id)?"IR":taxi.has(id)?"Taxi":"Bench";
         nextRows.push({leagueId,league:league.name,id,name:p.full_name||((p.first_name||"")+" "+(p.last_name||"")).trim()||id,pos:p.position||"",team:p.team||"",rosterStatus,injury:p.injury_status||"",nflStatus:p.status||"",bestBall});
       });
     });
