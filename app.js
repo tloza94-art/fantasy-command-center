@@ -265,7 +265,7 @@ function renderLeagueSelect(){
 }
 
 function renderTeam(){
-  let id=$("leagueSelect").value,rows=S.rows.filter(r=>r.leagueId===id),groups=["Starter","Bench","IR","Taxi"];
+  let id=$("leagueSelect").value,rows=S.rows.filter(r=>String(r.leagueId)===String(id)),groups=["Starter","Bench","IR","Taxi"];
   $("teamRoster").innerHTML=groups.map(g=>{let a=rows.filter(r=>r.rosterStatus===g);if(!a.length)return"";return'<section class="roster-group"><div class="roster-title">'+g.toUpperCase()+'</div><div class="card">'+a.map(r=>'<div class="roster-row"><div class="pos">'+esc(r.pos)+'</div><div><div class="player-name">'+esc(r.name)+'</div><div class="sub">'+esc(r.team||"FA")+(r.injury?' • '+esc(r.injury):'')+'</div></div><div class="sub">'+g+'</div></div>').join("")+'</div></section>'}).join("");
 }
 
