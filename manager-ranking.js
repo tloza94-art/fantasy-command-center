@@ -164,6 +164,17 @@ function outlookLabel(rank,total){
   return p<=.25?"Contender":p<=.5?"In the Mix":p<=.75?"Chasing":"Long Shot";
 }
 
+function projectedContentionYears(board,team){
+ const year=Number(S.nflState?.season||SEASON);
+ const scores=board.map(t=>{const base=t.rosterPct*.55+t.season*.35+t.health*.10;return [base,base*.55+t.future*.45,base*.25+t.future*.75]});
+ const index=board.indexOf(team);
+ return [0,1,2].map(offset=>{
+   const rank=scores.filter(s=>s[offset]>scores[index][offset]).length+1,total=board.length;
+   const relative=(rank-1)/Math.max(total-1,1);
+   const status=offset===0?outlookLabel(rank,total):rank===1?"Front Runner":relative<=.25?"Contender":relative<=.5?"Retooling":"Rebuilding";
+   return {year:year+offset,rank,total,status,score:Math.round(scores[index][offset]*100)};
+ });
+}
 function buildLeaguePowerBoard(league,valueMap,pickMap){
   const rosters=(S.rosters?.[league.league_id]||[]).filter(r=>r&&r.roster_id!==undefined&&r.roster_id!==null);
   const teams=rosters.map(roster=>({roster,metrics:rosterDynastyMetrics(league,roster,valueMap,pickMap)}));
@@ -221,6 +232,7 @@ async function buildManagerRanking(){
         dynastyScore:mine.dynasty,
         titleScore:mine.title,
         outlook:outlookLabel(mine.ranks.title,total),
+        years:projectedContentionYears(board,mine),
         wins:m.wins,losses:m.losses,ties:m.ties,winPct:m.winPct,pf:m.pf,
         marketMetrics:m,
         pickMetrics:m.pickMetrics
@@ -259,8 +271,9 @@ function scoreAndRenderManagerRanking(market){
     const picks=x.pickMetrics?.picks||[];
     const pickSummary=picks.length?(picks.length+" future picks • "+x.pickMetrics.firsts+" first"+(x.pickMetrics.firsts===1?"":"s")):"No future picks detected";
     const component=(label,key)=>'<div><span>'+label+'</span><strong>#'+r[key]+' of '+total+' • '+strengthLabel(r[key],total)+'</strong></div>';
+    const yearsHtml=(x.years||[]).map(y=>'<div class="year-outlook"><strong>'+y.year+'</strong><span>'+esc(y.status)+'</span><small>#'+y.rank+' of '+y.total+' • '+y.score+'/100</small></div>').join("");
     const zoneClass=x.outlook==="Front Runner"?"outlook-front":x.outlook==="Contender"?"outlook-contender":x.outlook==="In the Mix"?"outlook-mix":"outlook-chasing";
-    return '<div class="player ranking-card league-ranking-card"><div class="league-rank"><span>LEAGUE POWER</span><strong>#'+r.league+'</strong><small>of '+total+'</small></div><div class="rank-main"><div class="ranking-title-row"><div class="player-name">'+esc(x.league)+'</div><span class="outlook-pill '+zoneClass+'">'+esc(x.outlook)+'</span></div><div class="sub">'+(tags.length?esc(tags.join(" / "))+' • ':'')+'Record '+record+' • PF '+formatScore(x.pf)+'</div><div class="title-outlook-row"><span>Title Outlook</span><strong>#'+r.title+' of '+total+'</strong></div><details class="rank-breakdown"><summary>League breakdown</summary><div class="rank-components rank-components-readable">'+component("Roster","roster")+component("Future / Picks","future")+component("Season Form","season")+component("Depth / Health","health")+'</div><div class="muted">Draft capital: '+esc(pickSummary)+'.<br>Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
+    return '<div class="player ranking-card league-ranking-card"><div class="league-rank"><span>LEAGUE POWER</span><strong>#'+r.league+'</strong><small>of '+total+'</small></div><div class="rank-main"><div class="ranking-title-row"><div class="player-name">'+esc(x.league)+'</div><span class="outlook-pill '+zoneClass+'">'+esc(x.outlook)+'</span></div><div class="sub">'+(tags.length?esc(tags.join(" / "))+' • ':'')+'Record '+record+' • PF '+formatScore(x.pf)+'</div><div class="year-outlook-grid">'+yearsHtml+'</div><div class="title-outlook-row"><span>Current title rank</span><strong>#'+r.title+' of '+total+'</strong></div><details class="rank-breakdown"><summary>League breakdown</summary><div class="rank-components rank-components-readable">'+component("Roster","roster")+component("Future / Picks","future")+component("Season Form","season")+component("Depth / Health","health")+'</div><div class="muted">Draft capital: '+esc(pickSummary)+'.<br>Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
   }).join("");
 
   const oldCredit=$("dynastyValueCredit");
