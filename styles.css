@@ -73,3 +73,7 @@ nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding-left:calc(12px
 #homeView>.profile-prompt{display:none}
 #moreView>.card:first-child{padding:16px 19px}
 #moreView>.card:first-child h2{margin:4px 0}
+
+/* v50: rosters are roster-only; planning tools live under Tools */
+#teamsView:not(.direct-tool) #lineupLab,#teamsView:not(.direct-tool) #tradeLab{display:none!important}
+#teamsView.direct-tool #teamRoster{display:none!important}
