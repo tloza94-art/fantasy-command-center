@@ -22,7 +22,8 @@
 <div id="statusText" class="muted">Ready.</div>
 </section>
 
-<section id="homeView" class="view active">\n<div class="home-shortcuts"><button type="button" data-open-view="sundayView">⚡ Sunday Center</button><button type="button" data-open-view="managerView">🏆 League Rankings</button></div>
+<section id="homeView" class="view active">
+<div class="home-shortcuts"><button type="button" data-open-view="sundayView">⚡ Sunday Center</button><button type="button" data-open-view="managerView">🏆 League Rankings</button></div>
 <div class="stats">
 <div class="stat"><span>Leagues</span><strong id="leagueCount">—</strong></div>
 <div class="stat danger"><span>Must Fix</span><strong id="mustFixCount">—</strong></div>
@@ -67,7 +68,7 @@
 <div class="muted ranking-note">Cards are ordered by title outlook, but every visible rank is against the teams inside that league. League Power includes long-term dynasty strength; Title Outlook emphasizes your current path to a championship.</div>
 </section>
 
-<section id="teamsView" class="view">
+<section id="teamsView" class="view">\n<h2 id="teamPageTitle">Team Rosters</h2>
 <section class="card"><label>League</label><select id="leagueSelect"></select></section>
 <div class="team-modes" role="group" aria-label="Team tools"><button type="button" class="selected" data-team-mode="roster" aria-pressed="true">Roster + Lineup</button><button type="button" data-team-mode="trade" aria-pressed="false">Trade Lab</button></div>
 <section id="tradeLab" class="card" hidden></section>
@@ -98,10 +99,7 @@
 <button class="nav" data-view="moreView">☰<small>More</small></button>
 </nav>
 <section id="leaguesHub" class="view nav-hub"><div class="card"><h2>Leagues</h2><p class="muted">Open your team rosters or compare championship outlooks.</p><div class="page-links"><button data-open-view="teamsView">🏈 Team Rosters <span>›</span></button><button data-open-view="managerView">🏆 League Rankings <span>›</span></button></div></div></section>
-<section id="toolsHub" class="view nav-hub"><div class="card"><h2>Tools</h2><p class="muted">Your roster analysis and planning tools, each on its own screen.</p><div class="page-links"><button data-open-view="lineupToolView">🔄 What-If Lineup <span>›</span></button><button data-open-view="tradeToolView">⚖️ Trade Lab <span>›</span></button><button data-open-view="playersView">🔎 Player Search <span>›</span></button></div></div></section>
-<section id="lineupToolView" class="view nav-hub"><div class="card"><h2>What-If Lineup</h2><p class="muted">Select a league and test a legal lineup.</p><button data-open-view="teamsView" data-team-tool="roster">Open Lineup Builder</button></div></section>
-<section id="tradeToolView" class="view nav-hub"><div class="card"><h2>Trade Lab</h2><p class="muted">Select a league and build a hypothetical trade.</p><button data-open-view="teamsView" data-team-tool="trade">Open Trade Lab</button></div></section>
-
+<section id="toolsHub" class="view nav-hub"><div class="card"><h2>Tools</h2><p class="muted">Your roster analysis and planning tools, each on its own screen.</p><div class="page-links"><button data-open-view="teamsView" data-team-tool="lineup">🔄 What-If Lineup <span>›</span></button><button data-open-view="teamsView" data-team-tool="trade">⚖️ Trade Lab <span>›</span></button><button data-open-view="playersView">🔎 Player Search <span>›</span></button></div></div></section>
 <script src="app.js"></script>
 <script src="player-cache.js"></script>
 <script src="game-status-fix.js"></script>
@@ -110,5 +108,6 @@
 <script src="lineup-lab.js"></script>
 <script src="trade-lab.js"></script>
 <script src="resume-refresh.js"></script>
-<script src="pull-refresh.js"></script>\n<script src="navigation-v48.js"></script>
+<script src="pull-refresh.js"></script>
+<script src="navigation-v48.js"></script>
 </body></html>
