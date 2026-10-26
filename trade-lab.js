@@ -152,5 +152,5 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.querySelectorAll("[data-team-mode]").forEach(b=>b.onclick=()=>tradeSetMode(b.dataset.teamMode));
   $("leagueSelect").addEventListener("change",()=>{tradeReset();tradeLab.leagueId=null;tradeRender()});
   $("loadBtn").addEventListener("click",()=>{tradeLab.leagueId=null;tradeLab.partnerId="";tradeReset();tradeLab.market=null;tradeLab.pickMarket=null});
-  document.querySelector('[data-view="teamsView"]').addEventListener("click",()=>{if(!$("tradeLab").hidden)tradeRender()});
+  // Navigation is handled by the four-tab router; no obsolete Teams footer button.
 });
