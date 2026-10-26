@@ -51,7 +51,9 @@ input,select{background:#19283c;color:var(--text);border-color:var(--line)}
 .player-name{font-size:16px;line-height:1.4}
 .sub{font-size:13px;line-height:1.55}
 @media(max-width:390px){main{padding:16px 12px}.card,.stat,.player{padding:15px}.nav small{font-size:10px}}
-\n.availability-label{color:#fbbf24;font-size:12px;font-weight:850}\n
+
+.availability-label{color:#fbbf24;font-size:12px;font-weight:850}
+
 /* v48 four-tab navigation and dedicated tool pages */
 nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right))}
 .nav{font-size:21px;min-height:60px}.nav small{font-size:12px;margin-top:3px}
@@ -77,3 +79,56 @@ nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding-left:calc(12px
 /* v50: rosters are roster-only; planning tools live under Tools */
 #teamsView:not(.direct-tool) #lineupLab,#teamsView:not(.direct-tool) #tradeLab{display:none!important}
 #teamsView.direct-tool #teamRoster{display:none!important}
+
+/* v51 CLEAN LIGHT: readable neutral surfaces, restrained blue actions */
+:root{color-scheme:light;--bg:#f3f5f8;--panel:#ffffff;--text:#233449;--muted:#617187;--line:#dce3eb;--accent:#346fa6;--soft:#edf3f9;--deep:#182d43}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--text)}
+.topbar{background:#fff;border-bottom:1px solid var(--line);box-shadow:0 2px 12px rgba(24,45,67,.04)}
+.eyebrow,.pos,.rank-number,.league-rank strong{color:var(--accent)}
+.card,.stat,.player{background:#fff;color:var(--text);border:1px solid var(--line);box-shadow:0 2px 9px rgba(24,45,67,.035)}
+h1,h2,h3,h4,.player-name,.stat strong{color:var(--text)}
+.muted,.sub,.stat span,.roster-title{color:var(--muted)}
+input,select,.lab-select{background:#fff;color:var(--text);border:1px solid #c8d4e0}
+input::placeholder{color:#8290a0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #8bb7df;outline-offset:2px}
+button{background:var(--accent);color:#fff}
+button:disabled{background:#d9e1e9;color:#77869a}
+nav{background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 20px rgba(24,45,67,.07)}
+.nav{background:transparent;color:#62738a}
+.nav.active{background:#e6eff8;color:#215d91}
+.page-links button,.home-shortcuts button{background:#fff;color:var(--text);border:1px solid var(--line);box-shadow:0 2px 7px rgba(24,45,67,.04)}
+.page-links button span{color:var(--accent)}
+.page-links button:active,.home-shortcuts button:active{background:#edf3f9}
+.pull-refresh{background:#fff;color:var(--text);border-color:var(--line);box-shadow:0 6px 18px rgba(24,45,67,.12)}
+.sunday-hero,.manager-rank-hero{background:#f4f8fc;border-color:#c7d9eb}
+.urgent-card{border-color:#e9a9a9;background:#fffafa}
+.matchup-card{border-left:3px solid var(--accent)}
+.all-clear-card{background:#e8f6ef;color:#206444;border:1px solid #b9e3cc}
+.danger strong,.lab-loss{color:#b42336}.warn strong{color:#9b6200}.lab-gain{color:#167449}
+.badge{background:#edf1f6;color:#42566e}
+.danger-badge,.danger-chip{background:#fce8e8;color:#a52332}
+.warn-badge,.warn-chip{background:#fff0cc;color:#875400}
+.league-chip{background:#edf3f9;color:#365a7b}
+.availability-label{color:#a05e00}
+.roster-row{border-bottom-color:var(--line)}
+.rank-grade,.league-rank,.title-outlook-row,.rank-components div,.player-portfolio-stats span{background:#f4f7fa;border-color:var(--line);color:var(--text)}
+.rank-grade small,.league-rank span,.league-rank small,.title-outlook-row span,.rank-components span{color:var(--muted)}
+.outlook-front{background:#e4f4e9;color:#1e7044}
+.outlook-contender{background:#e4effb;color:#245f94}
+.outlook-mix{background:#fff1d7;color:#875900}
+.outlook-chasing{background:#eef0f4;color:#586576}
+.lab-chip{background:#e1f2f7;color:#236779}
+.lineup-lab{border-color:#bfd8e7}
+.lab-totals>div,.trade-result>div,.trade-impact-grid>div,.trade-rank-change{background:#f3f6fa}
+.trade-impact{background:#f7fafc;border-color:#cfdeea}
+.trade-assets{border-color:var(--line);background:#fff}
+.trade-asset{border-bottom-color:var(--line);color:var(--text)}
+.trade-asset em{color:#24679e}
+.trade-position-heading{background:#eaf1f8;color:#245d8c}
+.trade-position-heading span,.trade-asset small{color:var(--muted)}
+.trade-position-group+.trade-position-group{border-top-color:var(--line)}
+.profile-options button{background:#e9eef4;color:#38516c}
+.team-modes button{background:#eef2f6;color:#44566b;border-color:var(--line)}
+.team-modes button.selected{background:#e4effb;color:#215d91;border-color:#8cb5d8}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
