@@ -64,3 +64,12 @@ nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding-left:calc(12px
 .profile-prompt{margin-bottom:18px}.profile-prompt button{margin-top:12px}
 #moreView .manager-card{margin:20px 0}
 @media(max-width:390px){.nav-hub,#moreView{padding:16px 12px 105px}}
+
+/* v49 direct tool layout */
+#teamsView.direct-tool .team-modes{display:none}
+#teamsView.direct-lineup #teamRoster{display:none!important}
+#teamsView.direct-trade #lineupLab,#teamsView.direct-trade #teamRoster{display:none!important}
+#teamPageTitle{margin:4px 0 16px}
+#homeView>.profile-prompt{display:none}
+#moreView>.card:first-child{padding:16px 19px}
+#moreView>.card:first-child h2{margin:4px 0}
