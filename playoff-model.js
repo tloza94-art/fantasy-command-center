@@ -87,7 +87,7 @@
     let alive=qualified;
     const rounds=Math.ceil(Math.log2(slots));
     for(let round=0;round<rounds&&alive.length>1;round++){
-      const byes=Math.max(0,2**Math.floor(Math.log2(alive.length+0.0001))*2-alive.length);
+      const byes=Math.max(0,2**Math.ceil(Math.log2(alive.length))-alive.length);
       const byeCount=round===0?Math.min(byes,alive.length):0;
       const survivors=alive.slice(0,byeCount);
       const remaining=alive.slice(byeCount);
