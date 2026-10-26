@@ -235,9 +235,13 @@ function scoreAndRenderManagerRanking(market){
   if(!$("managerRankingList"))return;
   const a=managerRankingData.slice();
   if(!a.length){$("managerRankingList").innerHTML='<div class="muted">No league ranking data available.</div>';return}
-  // Keep the list useful as a portfolio dashboard by ordering it by title
-  // outlook, but every visible rank is against the managers inside that league.
-  a.sort((x,y)=>y.titleScore-x.titleScore||x.ranks.title-y.ranks.title||x.ranks.league-y.ranks.league);
+  // Group leagues by their displayed contending status first. Within each
+  // status, prefer stronger league-relative title rank, then title score.
+  const statusOrder={"Front Runner":0,"Contender":1,"In the Mix":2,"Chasing":3,"Long Shot":4};
+  a.sort((x,y)=>(statusOrder[x.outlook]??5)-(statusOrder[y.outlook]??5)
+    ||(x.ranks.title-1)/Math.max(x.totalTeams-1,1)-(y.ranks.title-1)/Math.max(y.totalTeams-1,1)
+    ||y.titleScore-x.titleScore
+    ||x.league.localeCompare(y.league));
 
   const totalWins=a.reduce((n,x)=>n+x.wins,0),avgWin=Math.round(a.reduce((n,x)=>n+x.winPct,0)/a.length*100);
   const best=a.slice().sort((x,y)=>x.ranks.title-y.ranks.title||y.titleScore-x.titleScore)[0];
