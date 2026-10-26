@@ -250,7 +250,7 @@ function scoreAndRenderManagerRanking(market){
   // Group leagues by their displayed contending status first. Within each
   // status, prefer stronger league-relative title rank, then title score.
   const statusOrder={"Front Runner":0,"Contender":1,"In the Mix":2,"Chasing":3,"Long Shot":4};
-  a.sort((x,y)=>(statusOrder[x.outlook]??5)-(statusOrder[y.outlook]??5)
+  a.sort((x,y)=>((y.playoffModel?.title??-1)-(x.playoffModel?.title??-1)) || ((y.playoffModel?.playoffs??-1)-(x.playoffModel?.playoffs??-1)) || (statusOrder[x.outlook]??5)-(statusOrder[y.outlook]??5)
     ||(x.ranks.title-1)/Math.max(x.totalTeams-1,1)-(y.ranks.title-1)/Math.max(y.totalTeams-1,1)
     ||y.titleScore-x.titleScore
     ||x.league.localeCompare(y.league));
@@ -271,16 +271,18 @@ function scoreAndRenderManagerRanking(market){
     const picks=x.pickMetrics?.picks||[];
     const pickSummary=picks.length?(picks.length+" future picks • "+x.pickMetrics.firsts+" first"+(x.pickMetrics.firsts===1?"":"s")):"No future picks detected";
     const component=(label,key)=>'<div><span>'+label+'</span><strong>#'+r[key]+' of '+total+' • '+strengthLabel(r[key],total)+'</strong></div>';
+    const odds=x.playoffModel;
+    const oddsHtml=odds?'<div class="odds-grid"><div><span>Playoff probability</span><strong>'+Math.round(odds.playoffs*1000)/10+'%</strong></div><div><span>Championship probability</span><strong>'+Math.round(odds.title*1000)/10+'%</strong></div></div><div class="odds-context">PF '+odds.pf.toFixed(1)+' • PA '+odds.pa.toFixed(1)+' • PF/game '+odds.pfAvg.toFixed(1)+' • PA/game '+odds.paAvg.toFixed(1)+' • PA rank '+odds.paRank+'/'+odds.teams+' (1 = easiest schedule) • League PF/game '+odds.leagueMean.toFixed(1)+'</div>':'<div class="odds-context">Playoff odds: calculating, or insufficient matchup/schedule data.</div>';
     const yearsHtml=(x.years||[]).map(y=>'<div class="year-outlook"><strong>'+y.year+'</strong><span>'+esc(y.status)+'</span><small>#'+y.rank+' of '+y.total+' • '+y.score+'/100</small></div>').join("");
     const zoneClass=x.outlook==="Front Runner"?"outlook-front":x.outlook==="Contender"?"outlook-contender":x.outlook==="In the Mix"?"outlook-mix":"outlook-chasing";
-    return '<div class="player ranking-card league-ranking-card"><div class="league-rank"><span>LEAGUE POWER</span><strong>#'+r.league+'</strong><small>of '+total+'</small></div><div class="rank-main"><div class="ranking-title-row"><div class="player-name">'+esc(x.league)+'</div><span class="outlook-pill '+zoneClass+'">'+esc(x.outlook)+'</span></div><div class="sub">'+(tags.length?esc(tags.join(" / "))+' • ':'')+'Record '+record+' • PF '+formatScore(x.pf)+'</div><div class="year-outlook-grid">'+yearsHtml+'</div><div class="title-outlook-row"><span>Current title rank</span><strong>#'+r.title+' of '+total+'</strong></div><details class="rank-breakdown"><summary>League breakdown</summary><div class="rank-components rank-components-readable">'+component("Roster","roster")+component("Future / Picks","future")+component("Season Form","season")+component("Depth / Health","health")+'</div><div class="muted">Draft capital: '+esc(pickSummary)+'.<br>Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
+    return '<div class="player ranking-card league-ranking-card"><div class="league-rank"><span>LEAGUE POWER</span><strong>#'+r.league+'</strong><small>of '+total+'</small></div><div class="rank-main"><div class="ranking-title-row"><div class="player-name">'+esc(x.league)+'</div><span class="outlook-pill '+zoneClass+'">'+esc(x.outlook)+'</span></div><div class="sub">'+(tags.length?esc(tags.join(" / "))+' • ':'')+'Record '+record+' • PF '+formatScore(x.pf)+'</div><div class="odds-block">'+oddsHtml+'</div><div class="year-outlook-grid">'+yearsHtml+'</div><div class="title-outlook-row"><span>Current title rank</span><strong>#'+r.title+' of '+total+'</strong></div><details class="rank-breakdown"><summary>League breakdown</summary><div class="rank-components rank-components-readable">'+component("Roster","roster")+component("Future / Picks","future")+component("Season Form","season")+component("Depth / Health","health")+'</div><div class="muted">Draft capital: '+esc(pickSummary)+'.<br>Core assets: '+leaders+'. Market-value coverage: '+coverage+'%.</div></details></div></div>';
   }).join("");
 
   const oldCredit=$("dynastyValueCredit");
   if(oldCredit)oldCredit.remove();
   if(market){
     const asOf=market.valuesAsOf?.sf_dynasty||market.valuesAsOf?.non_sf_dynasty||"";
-    $("managerRankingList").insertAdjacentHTML("afterend",'<div id="dynastyValueCredit" class="muted ranking-note">Dynasty player market values by <a href="https://statsguyfantasy.com" target="_blank" rel="noopener">Stats Guy Fantasy</a>'+(asOf?' • values updated '+esc(new Date(asOf).toLocaleDateString()):'')+'. League Power compares your roster against every team inside that league; Title Outlook emphasizes roster strength, season form, and lineup health.</div>');
+    $("managerRankingList").insertAdjacentHTML("afterend",'<div id="dynastyValueCredit" class="muted ranking-note">Dynasty player market values by <a href="https://statsguyfantasy.com" target="_blank" rel="noopener">Stats Guy Fantasy</a>'+(asOf?' • values updated '+esc(new Date(asOf).toLocaleDateString()):'')+'. League Power compares your roster against every team inside that league; Playoff and title percentages are Monte Carlo estimates using historical weekly scores, PF/PA, remaining Sleeper matchups and seeded playoff brackets; they are not guarantees. Future-year cards are long-term contention indicators, not probabilities.</div>');
   }
 }
 
