@@ -181,6 +181,15 @@ function leagueProfile(leagueOrId){
   const id=typeof leagueOrId==="object"?leagueOrId?.league_id:leagueOrId;
   return S.leagueProfiles?.[id]||(typeof leagueOrId==="object"?buildLeagueProfile(leagueOrId):null);
 }
+function playerAvailability(r){
+ const injury=norm(r.injury),status=norm(r.nflStatus);
+ if(["out","o","ir","injured reserve","pup","susp","suspended"].includes(injury)||["inactive","injured reserve","pup","suspended"].includes(status))return "OUT";
+ if(["d","doubtful"].includes(injury))return "DOUBTFUL";
+ if(["q","questionable"].includes(injury))return "QUESTIONABLE";
+ const team=normalizeTeam(r.team);
+ if(team&&team!=="FA"&&Object.keys(S.gameStates||{}).length&&!S.gameStates[team])return "NO GAME LISTED";
+ return "";
+}
 const must=r=>["o","out","ir","injured reserve","pup","susp","suspended"].includes(norm(r.injury))||norm(r.nflStatus)==="inactive";
 const watch=r=>["q","questionable","d","doubtful"].includes(norm(r.injury));
 const injured=r=>must(r)||watch(r)||!!norm(r.injury);
@@ -266,7 +275,7 @@ function renderLeagueSelect(){
 
 function renderTeam(){
   let id=$("leagueSelect").value,rows=S.rows.filter(r=>String(r.leagueId)===String(id)),groups=["Starter","Bench","IR","Taxi"];
-  $("teamRoster").innerHTML=groups.map(g=>{let a=rows.filter(r=>r.rosterStatus===g);if(!a.length)return"";return'<section class="roster-group"><div class="roster-title">'+g.toUpperCase()+'</div><div class="card">'+a.map(r=>'<div class="roster-row"><div class="pos">'+esc(r.pos)+'</div><div><div class="player-name">'+esc(r.name)+'</div><div class="sub">'+esc(r.team||"FA")+(r.injury?' • '+esc(r.injury):'')+'</div></div><div class="sub">'+g+'</div></div>').join("")+'</div></section>'}).join("");
+  $("teamRoster").innerHTML=groups.map(g=>{let a=rows.filter(r=>r.rosterStatus===g);if(!a.length)return"";return'<section class="roster-group"><div class="roster-title">'+g.toUpperCase()+'</div><div class="card">'+a.map(r=>'<div class="roster-row"><div class="pos">'+esc(r.pos)+'</div><div><div class="player-name">'+esc(r.name)+'</div><div class="sub">'+esc(r.team||"FA")+(playerAvailability(r)?' • <strong class="availability-label">'+esc(playerAvailability(r))+'</strong>':'')+'</div></div><div class="sub">'+g+'</div></div>').join("")+'</div></section>'}).join("");
 }
 
 function renderSearch(){
