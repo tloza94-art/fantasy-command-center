@@ -33,3 +33,21 @@ button{border:0;border-radius:12px;background:var(--accent);font-weight:800;padd
 .trade-impact{margin-top:16px;padding:14px;border:1px solid #155e75;border-radius:12px;background:#0b2030}.trade-impact h3{font-size:15px;margin:0 0 10px}.trade-impact h4{font-size:12px;margin:13px 0 7px}.trade-impact-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.trade-impact-grid>div{padding:9px 6px;background:#0b1120;border-radius:9px}.trade-impact-grid span,.trade-rank-change span{display:block;color:var(--muted);font-size:10px}.trade-impact-grid strong{display:block;font-size:15px;margin-top:6px}.trade-rank-change{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#0b1120;border-radius:9px;padding:11px;margin:12px 0 5px}.trade-rank-change strong{font-size:17px;white-space:nowrap}
 
 .trade-position-heading{position:sticky;top:0;z-index:1;background:#1e293b;color:#7dd3fc;font-size:11px;font-weight:900;letter-spacing:.08em;padding:8px 9px;display:flex;justify-content:space-between}.trade-position-heading span{color:#94a3b8}.trade-position-group+.trade-position-group{border-top:2px solid #334155}
+
+/* v47 spacious slate mobile refresh */
+:root{--bg:#162438;--panel:#23344b;--text:#f7fafc;--muted:#b5c5d9;--line:#3b506b;--accent:#77d4f7}
+body{background:var(--bg);padding-bottom:105px}
+.topbar{background:#203149;padding:20px 18px}
+main{padding:20px 17px;max-width:840px}
+.card,.stat,.player{background:var(--panel);border-color:var(--line);border-radius:20px;padding:19px}
+.stack{gap:15px}.stats{gap:13px}.manager-card{margin-bottom:20px}
+h2{font-size:19px;margin:28px 0 14px;line-height:1.3}
+.roster-row{padding:16px 5px;gap:12px}
+.roster-group{margin:24px 0}
+nav{background:#203149;border-color:var(--line);gap:3px;padding-top:10px}
+.nav{font-size:17px;min-height:58px;border-radius:13px}.nav small{font-size:11px}
+.nav.active{background:#38506b}
+input,select{background:#19283c;color:var(--text);border-color:var(--line)}
+.player-name{font-size:16px;line-height:1.4}
+.sub{font-size:13px;line-height:1.55}
+@media(max-width:390px){main{padding:16px 12px}.card,.stat,.player{padding:15px}.nav small{font-size:10px}}
