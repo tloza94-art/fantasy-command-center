@@ -132,3 +132,12 @@ nav{background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 20px rgba
 .team-modes button{background:#eef2f6;color:#44566b;border-color:var(--line)}
 .team-modes button.selected{background:#e4effb;color:#215d91;border-color:#8cb5d8}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* v53 league-relative three-year contention outlook */
+.year-outlook-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}
+.year-outlook{background:#f2f6fa;border:1px solid #dce3eb;border-radius:12px;padding:10px 7px;min-width:0}
+.year-outlook strong,.year-outlook span,.year-outlook small{display:block}
+.year-outlook strong{color:#346fa6;font-size:14px}
+.year-outlook span{font-size:11px;font-weight:800;color:#233449;margin-top:5px;overflow-wrap:anywhere}
+.year-outlook small{font-size:10px;color:#617187;margin-top:6px;line-height:1.4}
+@media(max-width:390px){.year-outlook-grid{gap:5px}.year-outlook{padding:8px 5px}.year-outlook span{font-size:10px}}
