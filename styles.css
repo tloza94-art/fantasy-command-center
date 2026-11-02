@@ -172,3 +172,10 @@ nav{background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 20px rgba
 .winning-player details{border-top:1px solid var(--line);padding-top:10px}
 .winning-leagues small{color:var(--muted);flex-shrink:0}
 .winning-more{width:100%;margin:12px 0 28px;min-height:44px}
+
+/* v58 compact overlap list */
+.shared-player{padding:13px 15px}
+.shared-player-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.shared-player-top .player-name{min-width:0;font-size:15px}
+.shared-player-count{flex-shrink:0;background:#e9f1f9;color:#245f94;border-radius:9px;padding:6px 9px;font-size:12px}
+.shared-player-leagues{color:#617187;font-size:12px;line-height:1.5;margin-top:7px;overflow-wrap:anywhere}
