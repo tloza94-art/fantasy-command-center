@@ -179,3 +179,6 @@ nav{background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 20px rgba
 .shared-player-top .player-name{min-width:0;font-size:15px}
 .shared-player-count{flex-shrink:0;background:#e9f1f9;color:#245f94;border-radius:9px;padding:6px 9px;font-size:12px}
 .shared-player-leagues{color:#617187;font-size:12px;line-height:1.5;margin-top:7px;overflow-wrap:anywhere}
+
+/* v59 season production rank for shared winning players */
+.shared-player-points{color:#346fa6;font-size:12px;font-weight:650;margin-top:5px}
