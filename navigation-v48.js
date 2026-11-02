@@ -1,6 +1,6 @@
 // Four-tab navigation with direct access to every tool.
 (function(){
- const topLevel={homeView:"homeView",leaguesHub:"leaguesHub",toolsHub:"toolsHub",moreView:"moreView",teamsView:"leaguesHub",managerView:"leaguesHub",playersView:"toolsHub",sundayView:"moreView",exposureView:"moreView"};
+ const topLevel={homeView:"homeView",leaguesHub:"leaguesHub",toolsHub:"toolsHub",moreView:"moreView",teamsView:"leaguesHub",managerView:"leaguesHub",playersView:"toolsHub",winningExposureView:"toolsHub",sundayView:"moreView",exposureView:"moreView"};
  function openPage(id,mode){
    const target=document.getElementById(id);if(!target)return;
    document.querySelectorAll(".view").forEach(el=>el.classList.toggle("active",el===target));
