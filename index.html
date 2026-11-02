@@ -83,9 +83,9 @@
 
 <section id="winningExposureView" class="view">
 <div class="card winning-exposure-hero">
-<div class="eyebrow">WINNING TEAM EXPOSURE</div>
-<h2>Top Winning Teams</h2>
-<p class="muted">Which players do you start most often across your winningest fantasy teams?</p>
+<div class="eyebrow">SHARED WINNING ROSTERS</div>
+<h2>Shared Players on Winning Teams</h2>
+<p class="muted">Find players your best-performing teams have in common.</p>
 <label for="topWinningCount">Compare top teams</label>
 <select id="topWinningCount" aria-label="Number of winningest teams to compare">
 <option value="5">Top 5 teams</option>
@@ -96,8 +96,8 @@
 <div id="topWinningExposureSummary" class="muted winning-summary">Load a manager to analyze your teams.</div>
 <details id="topWinningTeamsDetail" class="winning-teams-detail"></details>
 </div>
-<h2>Most Started Players</h2>
-<div id="topWinningExposureList" class="stack"><div class="muted">Load your Sleeper profile to see player exposure.</div></div>
+<h2>Players in Common</h2>
+<div id="topWinningExposureList" class="stack"><div class="muted">Load your Sleeper profile to compare winning rosters.</div></div>
 <button id="topWinningShowAll" class="winning-more" type="button" hidden>Show all players</button>
 </section>
 <section id="exposureView" class="view"><div id="exposureList" class="stack"></div></section>
@@ -118,7 +118,7 @@
 <button class="nav" data-view="moreView">☰<small>More</small></button>
 </nav>
 <section id="leaguesHub" class="view nav-hub"><div class="card"><h2>Leagues</h2><p class="muted">Open your team rosters or compare championship outlooks.</p><div class="page-links"><button data-open-view="teamsView">🏈 Team Rosters <span>›</span></button><button data-open-view="managerView">🏆 League Rankings <span>›</span></button></div></div></section>
-<section id="toolsHub" class="view nav-hub"><div class="card"><h2>Tools</h2><p class="muted">Your roster analysis and planning tools, each on its own screen.</p><div class="page-links"><button data-open-view="teamsView" data-team-tool="lineup">🔄 What-If Lineup <span>›</span></button><button data-open-view="teamsView" data-team-tool="trade">⚖️ Trade Lab <span>›</span></button><button data-open-view="playersView">🔎 Player Search <span>›</span></button><button data-open-view="winningExposureView">🏅 Top Winning Teams <span>›</span></button></div></div></section>
+<section id="toolsHub" class="view nav-hub"><div class="card"><h2>Tools</h2><p class="muted">Your roster analysis and planning tools, each on its own screen.</p><div class="page-links"><button data-open-view="teamsView" data-team-tool="lineup">🔄 What-If Lineup <span>›</span></button><button data-open-view="teamsView" data-team-tool="trade">⚖️ Trade Lab <span>›</span></button><button data-open-view="playersView">🔎 Player Search <span>›</span></button><button data-open-view="winningExposureView">🏅 Shared Winning Players <span>›</span></button></div></div></section>
 <script src="app.js"></script>
 <script src="player-cache.js"></script>
 <script src="game-status-fix.js"></script>
