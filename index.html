@@ -85,13 +85,20 @@
 <div class="card winning-exposure-hero">
 <div class="eyebrow">SHARED WINNING ROSTERS</div>
 <h2>Shared Players on Winning Teams</h2>
-<p class="muted">Find players your best-performing teams have in common.</p>
+<p class="muted">Find productive players your best-performing teams have in common.</p>
 <label for="topWinningCount">Compare top teams</label>
 <select id="topWinningCount" aria-label="Number of winningest teams to compare">
 <option value="5">Top 5 teams</option>
 <option value="10" selected>Top 10 teams</option>
 <option value="15">Top 15 teams</option>
 <option value="all">All teams</option>
+</select>
+<label for="topWinningQuality">Player performance</label>
+<select id="topWinningQuality" aria-label="Fantasy production filter">
+<option value="top15" selected>Top 15 at each position</option>
+<option value="top30">Top 30 at each position</option>
+<option value="points50">50+ season PPR points</option>
+<option value="scored">Any season PPR points</option>
 </select>
 <div id="topWinningExposureSummary" class="muted winning-summary">Load a manager to analyze your teams.</div>
 <details id="topWinningTeamsDetail" class="winning-teams-detail"></details>
