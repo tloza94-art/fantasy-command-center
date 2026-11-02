@@ -149,3 +149,26 @@ nav{background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 20px rgba
 .odds-grid span{display:block;font-size:11px;color:#4c647c;line-height:1.3}
 .odds-grid strong{display:block;color:#245f94;font-size:23px;margin-top:5px}
 .odds-context{font-size:11px;color:#5a6c80;line-height:1.5;margin-top:8px}
+
+/* v56: winningest-team player exposure tool */
+.winning-exposure-hero{display:flex;flex-direction:column;gap:11px}
+.winning-exposure-hero h2,.winning-exposure-hero p{margin:0}
+.winning-exposure-hero label{font-weight:700;font-size:13px}
+.winning-exposure-hero select{width:100%;min-height:44px;border-radius:10px;padding:9px 12px}
+.winning-summary{font-size:12px;line-height:1.5}
+.winning-teams-detail{border-top:1px solid var(--line);padding-top:11px}
+.winning-teams-detail summary,.winning-player details summary{cursor:pointer;color:var(--accent);font-weight:650;font-size:13px}
+.winning-team-list,.winning-leagues{margin-top:10px}
+.winning-team-row,.winning-leagues>div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-top:1px solid var(--line);padding:9px 0;font-size:12px}
+.winning-team-row span,.winning-leagues span{min-width:0;overflow-wrap:anywhere}
+.winning-team-row strong{flex-shrink:0}
+.winning-player{padding:15px}
+.winning-player-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.winning-player-head>div:first-child{min-width:0}
+.winning-owned{background:#e9f1f9;border:1px solid #c9dceb;border-radius:11px;padding:8px 10px;min-width:88px;text-align:center;flex-shrink:0}
+.winning-owned strong{display:block;font-size:19px;color:#245f94}
+.winning-owned span{display:block;font-size:10px;color:#516c85}
+.winning-starts{font-size:12px;color:var(--muted);margin:10px 0}
+.winning-player details{border-top:1px solid var(--line);padding-top:10px}
+.winning-leagues small{color:var(--muted);flex-shrink:0}
+.winning-more{width:100%;margin:12px 0 28px;min-height:44px}
